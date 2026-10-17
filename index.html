@@ -200,7 +200,7 @@ main{position:relative;min-height:0}
 .rankcard .bar{height:10px;margin-top:12px}
 .rankcard .bar i{background:var(--board-ink)}
 .rankcard small{display:block;margin-top:6px;color:var(--board-sub);font-size:12.5px}
-.ladder{display:flex;gap:4px;margin-top:12px}
+.ladder{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
 .ladder span{flex:1;text-align:center;font-size:10.5px;padding:4px 2px;border-radius:6px;background:#ffffff14;color:var(--board-sub);font-weight:600}
 .ladder span.on{background:var(--board-ink);color:var(--board)}
 .album{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
@@ -281,6 +281,26 @@ main{position:relative;min-height:0}
 .intro ul{padding-left:18px;margin:10px 0 0;line-height:1.55}
 @media (max-width:380px){.places{grid-template-columns:1fr}.top{gap:10px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* keep clear of notches and camera islands */
+:root{--top:max(18px,calc(env(safe-area-inset-top,0px) + 10px));--sl:max(10px,env(safe-area-inset-left,0px));--sr:max(10px,env(safe-area-inset-right,0px))}
+.hud,.walkctl,#mapback,.rankchip,.mapctl,.walk .mapctl,.maphint{top:var(--top)}
+#tab-map .maphint{top:calc(var(--top) + 46px)}
+.cmap-top,.cmap-btns{top:var(--top)}
+/* left-handed: controls on the left, info on the right */
+body.lefty .hud{left:auto;right:var(--sr)}
+body.lefty .walkctl,body.lefty .mapctl{right:auto;left:var(--sl)}
+body.lefty #mapback{left:auto;right:var(--sr)}
+body.lefty .maphint{left:60px;right:var(--sr)}
+body.lefty .joy{right:auto;left:max(14px,env(safe-area-inset-left,0px))}
+body.lefty .walkhint{left:160px;right:var(--sr)}
+body.lefty .near{left:184px;right:var(--sr)}
+body.lefty .cmap-btns{right:auto;left:var(--sl)}
+body.lefty .cmap-top{left:64px;right:var(--sl)}
+.handpick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0 4px}.handpick button{white-space:normal;min-width:0}#bag>*{min-width:0}
+.handpick button{padding:12px 8px;border-radius:12px;border:2px solid var(--line);background:var(--paper);font:700 15px var(--f-body);color:var(--ink)}
+.handpick button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--paper))}
+.handpick small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
 </style>
 
 <div id="app">
@@ -3869,7 +3889,8 @@ function renderBag(){
    <div><div class="sec-h"><span>Yrkescertifikat</span><span>${S.certs.length} av ${Object.keys(JOBS).length}</span></div><div class="chips">${Object.keys(JOBS).map(k=>`<span class="${S.certs.includes(k)?"":"off"}">${JOBS[k].n}</span>`).join("")}</div></div>
    <div><div class="sec-h"><span>Utrustning</span></div><div class="chips"><span>Film: ${S.film||0} bilder</span><span class="${S.drinks?"":"off"}">Energidryck: ${S.drinks||0} av ${MAXDRINK}</span><span class="${S.shoes?"":"off"}">Löparskor</span><span class="${Object.keys(S.cmaps||{}).length?"":"off"}">Stadskartor: ${Object.keys(S.cmaps||{}).map(id=>BY[id].n).join(", ")||"inga"}</span></div></div>
    <div class="statrow"><div><b>${S.trips}</b><span>Resor</span></div><div><b>${fmt(S.km)}</b><span>Km</span></div><div><b>${S.visited.length}</b><span>Städer</span></div></div>
-   <button class="linkbtn" id="restart" type="button">Börja om från början</button>`;
+   <div><div class="sec-h"><span>Inställningar</span></div><div style="font-size:13px;color:var(--muted)">Spela med</div>${handPicker()}</div>
+   <button class="linkbtn" id="restart" type="button">Börja om från början</button>`;wireHand($("bag"));
   $("bag").querySelectorAll("[data-tip]").forEach(b=>b.onclick=()=>{const id=b.dataset.tip;if(S.money<TIP_COST)return;S.money-=TIP_COST;S.tips.push(id);render()});
   requestAnimationFrame(()=>$("bag").querySelectorAll("canvas[data-pi]").forEach(cv=>{const p=S.photos[+cv.dataset.pi];drawScene(cv,BY[p.c],p.h)}));
   $("restart").onclick=()=>{const m=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`);
@@ -4015,18 +4036,26 @@ function soundPref(v){try{if(v===undefined)return localStorage.getItem(SND_KEY)=
 $("snd").onclick=()=>{if(AMB.on){AMB.stop();soundPref(false)}else{AMB.scene(here(),hourOf(),rainy());AMB.start();soundPref(true)}setSoundUI()};
 if(soundPref()){const once=e=>{if(e.target.closest&&e.target.closest("#snd"))return;document.removeEventListener("pointerdown",once,true);if(!AMB.on){AMB.scene(here(),hourOf(),rainy());AMB.start();setSoundUI()}};document.addEventListener("pointerdown",once,true)}
 
+/* ================= Handedness ================= */
+const HANDK="resfeber-hand";
+let HANDV=null;function getHand(){try{return localStorage.getItem(HANDK)||HANDV}catch(e){return HANDV}}
+function setHand(v){HANDV=v;try{localStorage.setItem(HANDK,v)}catch(e){}document.body.classList.toggle("lefty",v==="left");document.querySelectorAll(".handpick button").forEach(b=>b.classList.toggle("on",b.dataset.hand===v))}
+const handPicker=()=>{const v=getHand()||"right";return `<div class="handpick"><button type="button" data-hand="left" class="${v==="left"?"on":""}">✋ Vänster hand<small>Spaken och knapparna till vänster</small></button><button type="button" data-hand="right" class="${v!=="left"?"on":""}">Höger hand 🤚<small>Spaken och knapparna till höger</small></button></div>`};
+function wireHand(m){m.querySelectorAll(".handpick button").forEach(b=>b.onclick=()=>setHand(b.dataset.hand))}
+{const v=getHand();document.body.classList.toggle("lefty",v==="left")}
 /* ================= Boot ================= */
 function intro(saved){
   const m=modal(`<div class="intro"><h2>Välkommen till Världsresenärernas klubb</h2>
    <p style="margin:10px 0 0">Du är klubbens nyaste medlem. Målet är att bli <b>ordförande</b>. Klubben skickar uppdrag: fotografera kända platser runt om i världen, men den säger aldrig vilken stad det gäller.</p>
-   <ul><li>Du kan resa vart du vill så länge pengarna räcker. Som <b>novis</b> får du uppdrag i Norden, och med mer erfarenhet skickar klubben dig till Europa och sedan hela världen.</li>
-   <li>Tjäna pengar på <b>Jobbtorget</b>, där arbetsgivaren testar dig med frågor.</li>
+   <ul><li>Du börjar i Europa. När du stiger i graderna låser du upp en världsdel i taget, från Nordamerika till Oceanien.</li>
+   <li>Varje stad har <b>fem arbetsplatser</b>. Där tjänar du pengar genom att svara på frågor om yrket.</li>
    <li>Sov på <b>hotell</b> för att få tillbaka energin. Var försiktig ute på natten.</li>
    <li>Du reser från riktiga stationer: flyg går från <b>flygplatsen</b>, tåg från <b>tågstationen</b> och båtar från <b>hamnen</b>. Väskan öppnar du med knappen i stadsbilden.</li>
-   <li>Styr din gubbe med <b>spaken</b> nere till höger (eller piltangenterna). Kartan är tom när du kommer till en ny stad. Hus reser sig ur marken först när du kommer nära dem: hotell, butiker, arbetsplatser och klubbens kontor. Promenader tar tid, och på natten kan det vara farligt.</li>
+   <li>Gå genom att trycka på kartan, hålla fingret mot den eller dra i <b>spaken</b>. Hus reser sig ur marken när du kommer nära: hotell, butik, arbetsplatser och klubbens kontor.</li>
    <li>Tryck på <b>högtalaren</b> i stadsbilden för att höra hur staden låter.</li></ul>
+   <div class="sec-h" style="margin-top:12px"><span>Vilken hand spelar du med?</span></div>${handPicker()}
    <button class="btn primary" type="button" id="go">${saved?"Fortsätt resan":"Börja resan i Stockholm"}</button></div>`,{center:true,dismiss:false});
-  m.querySelector("#go").onclick=closeModal;
+  wireHand(m);m.querySelector("#go").onclick=()=>{if(!getHand())setHand("right");closeModal()};
 }
 const saved=load();if(saved)S=saved;else newGame();
 if(S.film==null)S.film=12;if(S.mapv!==8){S.xy={};S.found2={};S.hub=null;S.mapv=8;if(!CITIES.includes(BY[S.cur]))S.cur="sto";S.missions=S.missions.filter(id=>CITIES.includes(BY[id]));fillMissions();save()}
