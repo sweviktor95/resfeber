@@ -3004,6 +3004,9 @@ function poiDone(c,p){const db=(S.doneB||{})[c.id]||[];if(p.type==="job")return 
 function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
   if(busy)return;
+  if(W3.thief){const shut=poiStatus(p).cl||poiDone(here(),p)||p.type==="info"||p.type==="sight";
+    if(shut){toast(p.type==="info"||p.type==="sight"?"Här kan du inte gömma dig! Tjuven är kvar – hitta ett öppet ställe.":`${poiName(p,here())} har stängt! Tjuven jagar dig fortfarande – spring vidare!`,2600);return}
+    W3.thief=null;W3.thiefCool=performance.now()+60000;toast("Puh! Du tog dig in i tid och tjuven gav upp.",2200)}
   if(poiDone(here(),p)){toast(`✓ Klart här: ${poiName(p,here())}. Fortsätt till nästa ställe!`,2200);return}
   switch(p.type){
     case "travel":S.hub=p.mode;S.hubName=p.n;mapInit=false;setTab("map");return;
