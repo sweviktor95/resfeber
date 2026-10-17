@@ -1103,6 +1103,7 @@ function clock(c=here(), t=S.t){const m=Math.round(local(c,t)*60);const mm=((m%1
 const isDark = (c=here()) => {const h=hourOf(c);return h<6.5||h>=20};
 const isDanger = (c=here()) => {const h=hourOf(c);return h>=23||h<5};
 const jobOpen = () => {const h=hourOf();return h>=6&&h<17};
+const cafeOpen=()=>{const h=hourOf();return h>=7&&h<19},pubOpen=()=>{const h=hourOf();return h>=17||h<2};
 const cafeMode = () => {const h=hourOf();return h>=7&&h<19?"cafe":(h>=19||h<2)?"pub":"closed"};
 const DRY={cai:1,dxb:1};
 function rainy(c=here(),t=S.t){if(DRY[c.id])return false;const h=hourOf(c,t),half=h<13?0:1;return rng(hash(c.id+":"+dayOf(c,t)+":"+half))()<.16}
@@ -1312,10 +1313,9 @@ function sthlmMap(){
   const pois=[
     {type:"travel",mode:"train",n:HUB.sto[1],node:"cen"},{type:"travel",mode:"plane",n:HUB.sto[0],node:"arlanda"},{type:"travel",mode:"boat",n:HUB.sto[2],node:"stadsg"},{type:"club",n:"Världsresenärernas klubbhus",node:"nybro"},{type:"cafe",n:"Kaféet vid Stortorget",node:"stort"},
     {type:"kiosk",n:"Butiken vid Slussen",node:"slussen"},
-    {type:"job",job:"u_sto_hist",node:"sergel"},{type:"job",job:"u_sto_noje",node:"vlg"},{type:"job",job:"u_sto_vet",node:"jtorg"},{type:"job",job:"u_sto_konst",node:"skepps_n"},{type:"job",job:"skarg",node:"norrbro_n"},{type:"lux",n:"Hotell Panorama",node:"grand"},{type:"hostel",n:"Bed & Breakfast på båten",node:"hostel"},{type:"infok",n:"Infokiosken",node:"vasab_n"},
+    {type:"job",job:"u_sto_hist",node:"helge"},{type:"pub",n:"Puben vid Sergels torg",node:"sergel"},{type:"job",job:"u_sto_noje",node:"vlg"},{type:"job",job:"u_sto_vet",node:"jtorg"},{type:"job",job:"u_sto_konst",node:"skepps_n"},{type:"job",job:"skarg",node:"norrbro_n"},{type:"lux",n:"Hotell Panorama",node:"grand"},{type:"hostel",n:"Bed & Breakfast på båten",node:"hostel"},{type:"infok",n:"Infokiosken",node:"vasab_n"},
     {type:"sight",i:0,node:"vasa"},{type:"sight",i:1,node:"sthus"},{type:"sight",i:2,node:"slott"},
     {type:"info",n:"Riddarholmskyrkan",node:"riddarh",t:"Gravkyrka för svenska kungar och en av stadens äldsta byggnader. Kyrkan används i dag bara vid särskilda tillfällen."},
-    {type:"info",n:"Riksdagshuset",node:"helge",t:"Här sitter Sveriges riksdag, 349 ledamöter, på ön Helgeandsholmen mellan Gamla stan och Norrmalm."},
     {type:"info",n:"Kungsträdgården",node:"kungstr",t:"En av stadens mest kända parker. På våren blommar körsbärsträden och på vintern finns en isbana."}];
   return {w:(18.102-18.048)*56900*SK,h:(59.336-59.316)*111320*SK,bg:"water",land,parks,deco,blocks:[],water:[],labels,nodes,E,pois,start:"cen"};
 }
@@ -1346,7 +1346,7 @@ function genMap(c){
   if(c.port&&hub[2])pois.push({type:"travel",mode:"boat",n:hub[2],node:near(L.p||pdef)});
   for(let i=0;i<3;i++)pois.push({type:"sight",i,node:near((L.s&&L.s[i])||[R(),R()])});
   pois.push({type:"lux",n:"Hotell Panorama",node:pickRand()},{type:"hostel",n:budgetName(c),node:pickRand()},{type:"club",n:"Klubbens kontor",node:pickRand()},
-    {type:"cafe",n:"Kaféet",node:pickRand()},{type:"kiosk",n:"Butiken",node:pickRand()},...cityJobs(c).map(job=>({type:"job",job,node:pickRand()})));
+    {type:"cafe",n:"Kaféet",node:pickRand()},{type:"pub",n:"Puben",node:pickRand()},{type:"kiosk",n:"Butiken",node:pickRand()},...(FACTS[c.id]||[]).map(([n,t])=>({type:"info",n,t,node:pickRand()})),...cityJobs(c).map(job=>({type:"job",job,node:pickRand()})));
   const start=(pois.find(p=>p.type==="travel"&&p.mode==="train")||pois[0]).node;
   return {isWater:(x,y)=>isWater(x,y),w:W,h:H,bg:"land",land:[],parks,deco:[],blocks:[],water,labels:[],nodes,E,pois,start};
 }
@@ -1360,11 +1360,11 @@ function route(m,a,b){
   if(d[b]===Infinity)return null;const path=[];let u=b;while(u!==undefined){path.unshift(u);u=prev[u]}return {path,len:d[b]};
 }
 const posOf=c=>{const m=cityMap(c);if(!S.pos)S.pos={};if(!m.nodes[S.pos[c.id]])S.pos[c.id]=m.start;return S.pos[c.id]};
-function poiName(p,c=here()){if(p.type==="sight")return c.s[p.i];if(p.type==="job")return JOB_PLACE[p.job].n;if(p.type==="cafe"&&cafeMode()==="pub")return p.n.replace("Kaféet","Puben");return p.n}
+function poiName(p,c=here()){if(p.type==="sight")return c.s[p.i];if(p.type==="job")return JOB_PLACE[p.job].n;return p.n}
 PI_.train='<rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 10h16M8 21l2-4M16 21l-2-4"/>';PI_.boat='<path d="M3 15h18l-2 5H5zM12 15V4l6 8h-6M7 15V9h5"/>';
 function poiIco(p){return p.type==="travel"?({plane:"plane",train:"train",boat:"boat"}[p.mode]||"plane"):POI_ICON[p.type]}
 function budgetName(c){return c.t==="NA"||c.m==="OC"?"Motellet":c.t!=="EU"?"Gästhuset":"Bed & Breakfast"}
-const POI_ICON={infok:"info",travel:"plane",lux:"bed",hostel:"bed",job:"brief",cafe:"cup",kiosk:"map",sight:"camera",info:"info",club:"globe"};
+const POI_ICON={infok:"info",travel:"plane",lux:"bed",hostel:"bed",job:"brief",cafe:"cup",pub:"pint",kiosk:"map",sight:"camera",info:"info",club:"globe"};
 const JOB_PLACE={guide:{n:"Turistbyrån",kind:"tourinfo"},cook:{n:"Restaurangen",kind:"restaurant"},nurse:{n:"Sjukhuset",kind:"hospital"},journo:{n:"Tidningsredaktionen",kind:"newsroom"},
   carp:{n:"Snickeriet",kind:"workshop"},meteo:{n:"Väderstationen",kind:"weather"},libr:{n:"Biblioteket",kind:"library"},pilot:{n:"Flygskolan",kind:"ctower"},art:{n:"Konsthallen",kind:"gallery"},farm:{n:"Stadsodlingen",kind:"barn"}};
 /* ================= Job categories: every job asks about its own trade and subject ================= */
@@ -2158,8 +2158,10 @@ function poiStatus(p){const c=here(),t=tierOf(c),cm=cafeMode();
     case "job":{const cert=S.certs.includes(p.job),pay=r10(t.pay*(cert?1.5:1));return jobOpen()?{s:`Jobb som ${JOBS[p.job].n.toLowerCase()} · ${fmt(pay)} kr${cert?" ★":""}`}:{s:`${JOBS[p.job].n} · stängt till 06:00`,cl:1}}
     case "club":return {s:"Uppdrag och tips"};
     case "infok":return {s:"Kartor och vägbeskrivningar"};
-    case "cafe":return cm==="cafe"?{s:"Fika och frågesport · ger energi"}:cm==="pub"?{s:"Frågesport om pengar",ic:"pint"}:{s:"Stängt · öppnar 07:00",cl:1};
-    case "kiosk":return {s:"Stadskarta, film, löparskor och dryck"};
+    case "cafe":return cafeOpen()?{s:"Fika och frågesport · ger energi"}:{s:"Stängt · öppet 07–19",cl:1};
+    case "pub":return pubOpen()?{s:"Pubquiz om pengar"}:{s:"Stängt · öppet 17–02",cl:1};
+    case "info":return {s:"Visste du?"};
+    case "kiosk":return {s:"Stadskarta, molnlagring, skor och dryck"};
     case "sight":{const has=S.photos.some(x=>x.c===c.id&&x.s===p.i);return isDark()?{s:"För mörkt att fotografera",cl:1}:rainy()?{s:"Regn · dåligt fotoväder",cl:1}:{s:has?"Fotograferad · finns i albumet":"Sevärdhet att fotografera"}}
     default:return {s:"Läs mer"};
   }}
@@ -2245,10 +2247,10 @@ function segDist(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((
 /* ---- what each place looks like ---- */
 const ART={dig:[40,22],aquarium:[42,28],lodge:[38,30],museum:[44,30],cinema:[34,34],theater:[46,32],sporthall:[50,26],infokiosk:[16,14],motel:[44,18],airport:[64,34],ferry:[54,32],station:[60,32],hotel:[34,40],hostel:[30,22],ship:[50,34],office:[30,40],cafe:[28,19],kiosk:[20,19],club:[46,42],tourinfo:[22,18],restaurant:[30,22],hospital:[44,34],newsroom:[32,36],workshop:[34,22],weather:[24,36],library:[44,28],ctower:[22,46],gallery:[44,26],barn:[36,26],palace:[80,40],cityhall:[70,55],vasa:[60,45],
   church:[30,50],parliament:[60,30],park:[40,25],harbor:[40,28],dome:[50,45],temple:[50,35],tower:[30,62],pagoda:[30,50],monument:[18,32],museum:[50,30]};
-const STO_KIND={cen:"station",sergel:"office",stort:"cafe",slussen:"kiosk",grand:"hotel",hostel:"ship",vasa:"vasa",sthus:"cityhall",slott:"palace",riddarh:"church",helge:"parliament",kungstr:"park"};
+const STO_KIND={cen:"station",sergel:"restaurant",stort:"cafe",slussen:"kiosk",grand:"hotel",hostel:"ship",vasa:"vasa",sthus:"cityhall",slott:"palace",riddarh:"church",helge:"parliament",kungstr:"park"};
 const MAIN_SIGHT={nordic:"church",gable:"church",euro:"dome",old:"temple",modern:"tower",asia:"pagoda"};
 function poiKind(p,c){if(p.type==="travel")return {plane:"airport",train:"station",boat:"ferry"}[p.mode]||"station";if(p.type==="job")return JOB_PLACE[p.job].kind;if(p.type==="club")return "club";if(p.type==="infok")return "infokiosk";if(p.type==="hostel"&&c.id!=="sto")return p.n==="Motellet"?"motel":"hostel";if(c.id==="sto"&&STO_KIND[p.node])return STO_KIND[p.node];
-  return {travel:"station",lux:"hotel",hostel:"hostel",job:"office",cafe:"cafe",kiosk:"kiosk",info:"harbor"}[p.type]||[MAIN_SIGHT[c.st]||"dome","monument","museum"][p.i]||"museum"}
+  return {travel:"station",lux:"hotel",hostel:"hostel",job:"office",cafe:"cafe",pub:"restaurant",kiosk:"kiosk",info:c.id==="sto"?"harbor":"monument"}[p.type]||[MAIN_SIGHT[c.st]||"dome","monument","museum"][p.i]||"museum"}
 const ROOFS={nordic:["#8a3b2e","#3d3a3a","#5c7a63","#a0522d","#6b3a2e"],gable:["#5d4a3c","#7a4b35","#4a3f3a"],euro:["#9c5b3c","#6f6a66","#b5703f","#8a8580"],
   modern:["#9aa3ad","#7d868f","#b8c0c8","#a7b0ba"],old:["#d6b98c","#c9a675","#e0c79e","#cfae80"],asia:["#a23b2c","#7b6d5d","#9aa3ad","#8c4a3a"]};
 function artCanvas(kind,c){
@@ -2861,9 +2863,18 @@ function drawStreet(now){
     objs.push({y:by,f:()=>{const k=o.s,pop=k<1?1-Math.pow(1-k,3)*(1+2.4*k)+(k>.7?Math.sin((k-.7)*10)*.04:0):1,[sx,sy]=proj(d0[0],by,0),A=o.art,k2=s/SPR*1.25,w=o.p._w*s,ph=Math.max(0,pop);
       g.fillStyle="rgba(0,0,0,.16)";g.beginPath();g.ellipse(sx+w*.12,sy-w*.05,w*.62,w*.16,0,0,7);g.fill();
       if(ph>.01)g.drawImage(A.cv,sx-A.ax*k2,sy-A.ay*k2*ph,A.cv.width*k2,A.cv.height*k2*ph)}})}
-  for(const it of W3.items){if(it.done||it.s<.01)continue;objs.push({y:it.y,f:()=>{const [sx,sy]=proj(it.x,it.y,0),b=Math.sin(now/280+it.x)*3,w=8*s*it.s,h=w*150/128;
+  for(const it of W3.items){if(it.done||it.s<.01)continue;
+    if(it.t==="tourist"){objs.push({y:it.y,f:()=>{g.globalAlpha=Math.min(1,it.s);shadow(it.x,it.y);drawWalker(g,TOURIST_W,it.x,it.y,Math.sin(now/1600+it.x)*1.3,false,proj);
+      const [bx,by]=proj(it.x,it.y,25),r=5.2*s,bb=Math.sin(now/300)*1.5;g.fillStyle="#fff";g.strokeStyle="#1b2838";g.lineWidth=1.6;g.beginPath();g.arc(bx+5*s,by-3*s+bb,r,0,7);g.fill();g.stroke();
+      g.beginPath();g.arc(bx+1.6*s,by+1.5*s+bb,1.1*s,0,7);g.fill();g.stroke();g.fillStyle="#1b2838";g.font=`800 ${7.5*s}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText("?",bx+5*s,by-2.6*s+bb);g.globalAlpha=1}});continue}
+    objs.push({y:it.y,f:()=>{const [sx,sy]=proj(it.x,it.y,0),b=Math.sin(now/280+it.x)*3,w=8*s*it.s,h=w*150/128;
     g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(sx,sy,w*.35,w*.12,0,0,7);g.fill();g.drawImage(it.img,sx-w/2,sy-h-6*s*HF+b,w,h)}})}
   objs.push({y:p[1],f:()=>{shadow(p[0],p[1]);drawWalker(g,W3.me,p[0],p[1],W3.dir,W3.moving,proj)}});
+  if(W3.thief){const T=W3.thief;objs.push({y:T.y,f:()=>{shadow(T.x,T.y);const ux=Math.sin(T.dir),uy=Math.cos(T.dir),P=(a,b,z)=>proj(T.x+ux*a,T.y+uy*a+b,z);
+    g.strokeStyle="#1b2838";g.lineWidth=Math.max(2,1.2*s);g.lineCap="round";const [a1,a2]=P(-5,0,1.4),[b1,b2]=P(5,0,1.4),[c1,c2]=P(5.5,0,13),[h1,h2]=P(5.5,0,13);
+    g.beginPath();g.moveTo(a1,a2);g.lineTo(b1,b2);g.lineTo(c1,c2);g.stroke();g.beginPath();g.moveTo(h1-3*s,h2);g.lineTo(h1+3*s,h2);g.stroke();
+    for(const [wx,wy] of [P(-5,0,1),P(5,0,1)]){g.fillStyle="#333";g.beginPath();g.arc(wx,wy,1.6*s,0,7);g.fill()}
+    const pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz)}})}
   function shadow(x,y){const [sx,sy]=proj(x,y,0);g.fillStyle="rgba(0,0,0,.22)";g.beginPath();g.ellipse(sx,sy,2.8*SC*s,2.8*SC*s*KY,0,0,7);g.fill()}
   objs.sort((a,b)=>a.y-b.y);for(const o of objs)o.f();
   // light and weather
@@ -2871,11 +2882,26 @@ function drawStreet(now){
   if(L<.98&&L>.2){g.fillStyle=`rgba(255,140,60,${(.5-Math.abs(L-.55))*.18})`;g.fillRect(0,0,Wp,Hp)}
   if(rain){g.fillStyle="rgba(70,80,100,.18)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(220,230,245,.5)";g.lineWidth=1;g.beginPath();const t=now/1000;
     for(let i=0;i<90;i++){const x=((i*97+t*60)%(Wp+40))-20,y=((i*53+t*520)%(Hp+40))-20;g.moveTo(x,y);g.lineTo(x-4,y+12)}g.stroke()}
+  if(W3.guide!=null){const tp=m.pois[W3.guide],d0=tp&&m.nodes[tp.node];if(!d0||dist2(d0,p)<NEAR_R*1.6)W3.guide=null;else{
+    const [ax,ay]=proj(p[0],p[1],36),[px0,py0]=proj(p[0],p[1],0),[tx,ty]=proj(d0[0],d0[1],0),ang=Math.atan2(ty-py0,tx-px0),r=9*s,pul=1+.08*Math.sin(now/220);
+    g.save();g.translate(ax,ay);g.rotate(ang);g.scale(pul,pul);g.fillStyle="#f39a2b";g.strokeStyle="#fff";g.lineWidth=3;g.lineJoin="round";g.beginPath();g.moveTo(r,0);g.lineTo(-r*.5,-r*.7);g.lineTo(-r*.2,0);g.lineTo(-r*.5,r*.7);g.closePath();g.stroke();g.fill();g.restore();
+    const mins=Math.max(1,Math.round(dist2(d0,p)*1.25/WALK_SPEED));g.font=`800 ${Math.max(11,4.2*s)}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="bottom";g.lineWidth=3;g.strokeStyle="#fff";g.fillStyle="#1b2838";
+    const tl=poiName(tp,c)+" · "+mins+" min";g.strokeText(tl,ax,ay-r-4);g.fillText(tl,ax,ay-r-4)}}
   // signs float above everything once a place has popped up
   for(const o of W3.pois){if(o.s<.6)continue;const d0=m.nodes[o.p.node],nm=poiName(o.p,c);if(dist2(d0,p)>SHOW_R)continue;if(o.lt!==nm){o.label=labelCanvas(nm,o.p.type,poiIco(o.p),o.p.type==="job"&&CATS[JOB_CAT[o.p.job]]?CATS[JOB_CAT[o.p.job]].col:null);o.lt=nm}
     const [sx,sy0]=proj(d0[0],d0[1]-(o.art?o.p._back:0),0),sy=sy0-(o.art?o.art.ay*s/SPR*1.25:6*s),k=Math.min(1,(o.s-.6)/.4),w=Math.min(250,Math.max(150,46*s))*k,h=w*112/512;
     g.globalAlpha=k;g.drawImage(o.label,sx-w/2,sy-h-4,w,h);g.globalAlpha=1}
 }
+const TOURIST_W={phase:0,col:{shirt:"#f4a259",pants:"#5a6f88",skin:"#f1c7a1",pack:"#2a9d8f",cap:"#e9c46a"}};
+const THIEF_W={phase:0,col:{shirt:"#2b2b33",pants:"#1d1d22",skin:"#c99a74",pack:null,cap:"#111"}};
+/* the night thief on an e-scooter: chases you until you reach a building */
+function thiefStep(dt,wd,p){const h=hourOf(),night=h>=22||h<5;let T=W3.thief;
+  if(!night||modalOpen()||busy){if(T){W3.thief=null;W3.thiefCool=performance.now()+(night?40000:0)}return}
+  if(!T){if(performance.now()<(W3.thiefCool||0)||S.money<50||Math.random()>dt/22)return;const sp=findSpot(wd,p[0],p[1],120,170);if(!sp)return;
+    T=W3.thief={x:sp[0],y:sp[1],dir:0};toast("En ficktjuv på elsparkcykel har fått syn på dig! Skynda dig in på ett hotell eller någon annanstans.",3400);if(AMB.on&&AMB.scooter)AMB.scooter();return}
+  const dx=p[0]-T.x,dy=p[1]-T.y,L=Math.hypot(dx,dy);if(L>320){W3.thief=null;return}
+  if(L<7){const a=Math.min(1500,r10(S.money*.4));W3.thief=null;W3.thiefCool=performance.now()+90000;if(a>0){S.money-=a;EV.push({type:"rob",a});keys.clear();joyV=[0,0];renderHeader();save();flushEvents()}return}
+  const v=30*dt,nx=T.x+dx/L*v,ny=T.y+dy/L*v;T.dir=Math.atan2(dx,dy);if(wd.walkable(nx,ny)){T.x=nx;T.y=ny}else if(wd.walkable(nx,T.y))T.x=nx;else if(wd.walkable(T.x,ny))T.y=ny;else{T.x=nx;T.y=ny}}
 const TREE_IMG=(()=>{const cv=document.createElement("canvas");cv.width=128;cv.height=192;const g=cv.getContext("2d");g.lineWidth=4;g.strokeStyle="#1b2838";
   g.fillStyle="#6b4a2e";g.fillRect(56,120,16,70);g.strokeRect(56,120,16,70);g.fillStyle="#5e8c4a";g.beginPath();g.arc(64,72,56,0,7);g.fill();g.stroke();g.fillStyle="#77a35c";g.beginPath();g.arc(48,60,28,0,7);g.fill();return cv})();
 function w3Light(){}
@@ -2889,11 +2915,10 @@ function discoverAt(x,y){
 function nearIdxAt(x,y){const c=here(),m=cityMap(c);let best=-1,bd=NEAR_R;m.pois.forEach((p,i)=>{if(!isFound(c,i))return;const d=dist2(m.nodes[p.node],[x,y]);if(d<bd){bd=d;best=i}});return best}
 function nearCheck(x,y){nearIdx=nearIdxAt(x,y);$("near").hidden=true}
 /* stepping onto the round spot in front of a building takes you inside; closed places answer with an info box */
-function enterCheck(x,y){const i=nearIdxAt(x,y);if(i===W3.inside)return;if(i>=0&&performance.now()<(W3.cool||0))return;W3.inside=i;nearIdx=i;if(i<0){S.hub=null;return}W3.target=null;
+function enterCheck(x,y){const i=nearIdxAt(x,y);if(i===W3.inside)return;if(i>=0&&performance.now()<(W3.cool||0))return;W3.inside=i;nearIdx=i;if(i<0){S.hub=null;return}W3.target=null;if(W3.guide===i)W3.guide=null;
   const p=cityMap(here()).pois[i];setTimeout(()=>{if(!modalOpen()&&!busy)openPoi(p)},60)}
 function enterNear(){if(nearIdx<0||busy||walking)return;const p=cityMap(here()).pois[nearIdx];keys.clear();joyV=[0,0];openPoi(p)}
 function afterMove(moved){
-  if(isDanger()){robAcc+=moved;while(robAcc>=100){robAcc-=100;if(Math.random()<.03){const a=Math.min(1500,r10(S.money*.4));if(a>0){S.money-=a;EV.push({type:"rob",a})}}}}
   const [x,y]=meXY();discoverAt(x,y);enterCheck(x,y);quizHostCheck(moved);
   if(EV.length){keys.clear();joyV=[0,0];renderHeader();save();flushEvents()}
 }
@@ -2931,7 +2956,7 @@ function w3Loop(now){
     if(W3.target){W3.stuck=d<sp*.35?(W3.stuck||0)+dt:0;if(W3.stuck>.5)W3.target=null}
     if(d>0){p[0]=mx;p[1]=my;W3.moving=true;W3.me.phase+=dt*11*Math.min(1,L);$("walkhint").hidden=true;S.walked=1;afterMove(d)}}
   W3.pois.forEach((o,i)=>{if(isFound(c,i))o.s=Math.min(1,o.s+dt*1.6)});
-  for(const it of W3.items){if(it.done)continue;const d=dist2([it.x,it.y],p),want=d<75?1:0;it.s+=(want-it.s)*Math.min(1,dt*6);if(d<8&&!modalOpen()&&!busy)pickItem(it)}
+  thiefStep(dt,wd,p);for(const it of W3.items){if(it.done)continue;const d=dist2([it.x,it.y],p),want=d<(it.t==="tourist"?150:75)?1:0;it.s+=(want-it.s)*Math.min(1,dt*6);if(d<8&&!modalOpen()&&!busy)pickItem(it)}
   
   drawStreet(now);
 }
@@ -2970,7 +2995,8 @@ function renderPlaces(){
 }
 
 /* a building you have finished turns green and stays closed */
-function poiDone(c,p){if(p.type==="job")return jobsDone(c).includes(p.job);if(p.type==="cafe")return ((S.doneB||{})[c.id]||[]).includes("cafe");
+function openFact(p){const c=here();markDoneB(c,"info:"+p.n);modal(`<div class="eyebrow" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Visste du?</div><h2 style="margin-top:4px">${esc(p.n)}</h2><div class="fact" style="font-size:15.5px">${esc(p.t)}</div><button class="close" type="button">Gå vidare</button>`,{center:true});render()}
+function poiDone(c,p){const db=(S.doneB||{})[c.id]||[];if(p.type==="job")return jobsDone(c).includes(p.job);if(p.type==="cafe"||p.type==="pub")return db.includes(p.type);if(p.type==="info")return db.includes("info:"+p.n);
   if(p.type==="sight")return S.photos.some(ph=>ph.c===c.id&&ph.s===p.i)&&!(S.missions.includes(c.id)&&p.i===c.k);return false}
 function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
@@ -2984,6 +3010,8 @@ function openPoi(p){
     case "club":return openClub();
     case "infok":return openInfo();
     case "cafe":return openCafe();
+    case "pub":return openPub();
+    case "info":return openFact(p);
     case "kiosk":return openKiosk();
     case "sight":return openSight(p.i);
     default:modal(`<h2>${esc(p.n)}</h2><p class="sub">${esc(p.t)}</p><button class="close" type="button">Stäng</button>`);
@@ -3060,22 +3088,22 @@ function openJobs(){
   const c=here(),t=tierOf(c);
   if(!jobOpen()){modal(`<h2>Jobbtorget</h2><div class="sub">Stängt just nu. Klockan är ${clock()}. Kom tillbaka mellan 06:00 och 17:00.</div><button class="close" type="button">Stäng</button>`);return}
   const rows=jobsHere().map(k=>{const cert=S.certs.includes(k),pay=r10(t.pay*(cert?1.5:1));
-    return `<button class="opt" data-k="${k}" type="button">${pIcon("brief")}<span><span class="t">${JOBS[k].n}${cert?" ★":""}</span><span class="r">${cert?"Du har certifikat · högre lön":"Svara rätt på 4 av 4 för certifikat"}</span></span><span class="p">${fmt(pay)} kr<small>6 tim</small></span></button>`}).join("");
+    return `<button class="opt" data-k="${k}" type="button">${pIcon("brief")}<span><span class="t">${JOBS[k].n}${cert?" ★":""}</span><span class="r">${cert?"Du har certifikat · högre lön":"Svara rätt på 5 av 5 för certifikat"}</span></span><span class="p">${fmt(pay)} kr<small>6 tim</small></span></button>`}).join("");
   const m=modal(`<h2>Jobbtorget</h2><div class="sub">Dagens lediga jobb i ${esc(c.n)}. Arbetsgivaren testar dig med fyra frågor, och lönen beror på hur många du klarar.</div><div class="opts">${rows}</div><button class="close" type="button">Avbryt</button>`);
   m.querySelectorAll(".opt").forEach(b=>b.onclick=()=>doJob(b.dataset.k));
 }
 function openJob(k){
   const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=r10(t.pay*(cert?1.5:1)),place=JOB_PLACE[k].n;
   if(!jobOpen()){modal(`<h2>${place}</h2><div class="sub">Stängt just nu. Klockan är ${clock()}. Här tar de in folk mellan 06:00 och 17:00.</div><button class="close" type="button">Stäng</button>`);return}
-  const m=modal(`<h2>${place}</h2><div class="sub">De söker en ${JOBS[k].n.toLowerCase()} för ett pass på sex timmar. ${catDot(k)} Chefen testar dig med fyra frågor om yrket, gärna med koppling till ${esc(c.n)}. Lönen beror på hur många du klarar, och minst tre rätt räknas som klarat jobb.${cert?" Du har certifikat i yrket och får högre lön.":" Alla rätt ger ett yrkescertifikat."}</div>${jobTally(c)}
+  const m=modal(`<h2>${place}</h2><div class="sub">De söker en ${JOBS[k].n.toLowerCase()} för ett pass på sex timmar. ${catDot(k)} Chefen testar dig med fem frågor om yrket, gärna med koppling till ${esc(c.n)}. Lönen beror på hur många du klarar, och minst fyra rätt räknas som klarat jobb.${cert?" Du har certifikat i yrket och får högre lön.":" Alla rätt ger ett yrkescertifikat."}</div>${jobTally(c)}
     <div class="result">${fmt(pay)} kr</div><button class="btn primary" type="button" id="take">Ta jobbet · 6 tim</button><button class="close" type="button">Inte nu</button>`);
   m.querySelector("#take").onclick=()=>jobIntro(k);
 }
 function openInfo(){
   const c=here(),m=cityMap(c),me=meXY(),f=foundList(c),taxis=taxiRows(c);
   const rows=m.pois.map((p,i)=>({p,i})).filter(o=>!f.includes(o.i)&&o.p.type!=="infok").map(o=>{const d=m.nodes[o.p.node];return {o,d:dist2(me,d),dir:dirTo(me,d)}}).sort((a,b)=>a.d-b.d)
-    .map(x=>`<div class="opt" style="cursor:default">${pIcon(poiStatus(x.o.p).ic||poiIco(x.o.p))}<span><span class="t">${esc(poiName(x.o.p,c))}</span><span class="r">Ca ${Math.max(1,Math.round(x.d*1.25/WALK_SPEED))} min åt ${x.dir}</span></span><span></span></div>`).join("");
-  const mm=modal(`<h2>Infokiosken</h2><div class="sub">Välkommen till ${esc(c.n)}! Så här hittar du till platser du inte har varit på än.</div>${jobTally(c)}<div class="opts">${commonJobBtn("infok")}${rows||`<div class="empty">Du har redan hittat allt i ${esc(c.n)}.</div>`}</div>${taxis.length?`<div class="sec-h" style="margin-top:14px"><span>Taxi</span><span>till platser du hittat</span></div><div class="opts">${taxis.map((x,k)=>`<button class="opt" data-tx="${k}" type="button" ${S.money<x.price?"disabled":""}>${pIcon("pin")}<span><span class="t">${esc(poiName(x.p,c))}</span><span class="r">${x.min} min med taxi</span></span><span class="p">${fmt(x.price)} kr</span></button>`).join("")}</div>`:""}<button class="close" type="button">Tack!</button>`);wireCommonJob(mm);mm.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>rideTaxi(taxis[+b.dataset.tx]));
+    .map(x=>`<button type="button" class="opt" data-gi="${x.o.i}">${pIcon(poiStatus(x.o.p).ic||poiIco(x.o.p))}<span><span class="t">${esc(poiName(x.o.p,c))}</span><span class="r">Ca ${Math.max(1,Math.round(x.d*1.25/WALK_SPEED))} min åt ${x.dir} · tryck för pil</span></span><span>➜</span></button>`).join("");
+  const mm=modal(`<h2>Infokiosken</h2><div class="sub">Välkommen till ${esc(c.n)}! Tryck på en plats så visar en pil vägen dit.</div>${jobTally(c)}<div class="opts">${commonJobBtn("infok")}${rows||`<div class="empty">Du har redan hittat allt i ${esc(c.n)}.</div>`}</div>${taxis.length?`<div class="sec-h" style="margin-top:14px"><span>Taxi</span><span>till platser du hittat</span></div><div class="opts">${taxis.map((x,k)=>`<button class="opt" data-tx="${k}" type="button" ${S.money<x.price?"disabled":""}>${pIcon("pin")}<span><span class="t">${esc(poiName(x.p,c))}</span><span class="r">${x.min} min med taxi</span></span><span class="p">${fmt(x.price)} kr</span></button>`).join("")}</div>`:""}<button class="close" type="button">Tack!</button>`);mm.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{W3.guide=+b.dataset.gi;closeModal();toast(`Följ pilen till ${poiName(m.pois[W3.guide],c)}.`,2400)});wireCommonJob(mm);mm.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>rideTaxi(taxis[+b.dataset.tx]));
 }
 function openClub(){
   const n=unlocked(),next=S.xy&&S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
@@ -3087,9 +3115,9 @@ function openClub(){
 function doJob(k){
   const t=tierOf(here()),cert=S.certs.includes(k),full=r10(t.pay*(cert?1.5:1));
   runQuiz({title:JOBS[k].n,sub:`Jobbpass i ${here().n}`,qs:jobQs(k),done:(right,box)=>{
-    const pay=r10(full*right/4);S.money+=pay;pass(6);spendEnergy(15);
-    let extra=right>=3?markJobDone(k):"";if(right===4&&!cert){S.certs.push(k);gainXP(CERT_XP);extra+=`<div class="fact"><b>Certifikat: ${JOBS[k].n}!</b> Du får 50 % högre lön i yrket från och med nu, och ${CERT_XP} XP.</div>`}
-    box.innerHTML=`<h2>${right>=3?"Bra jobbat!":right>=2?"Godkänt.":"Chefen var inte nöjd."}</h2><div class="sub">${right} av 4 rätt · passet tog 6 timmar</div><div class="result">+${fmt(pay)} kr</div>${extra}<button class="btn primary" type="button" id="ok">Fortsätt</button>`;
+    const pay=r10(full*right/5);S.money+=pay;pass(6);spendEnergy(15);
+    let extra=right>=4?markJobDone(k):"";if(right===5&&!cert){S.certs.push(k);gainXP(CERT_XP);extra+=`<div class="fact"><b>Certifikat: ${JOBS[k].n}!</b> Du får 50 % högre lön i yrket från och med nu, och ${CERT_XP} XP.</div>`}
+    box.innerHTML=`<h2>${right>=4?"Bra jobbat!":right>=3?"Godkänt, men inte klart.":"Chefen var inte nöjd."}</h2><div class="sub">${right} av 5 rätt · passet tog 6 timmar${right<4?" · minst 4 rätt behövs för att klara jobbet":""}</div><div class="result">+${fmt(pay)} kr</div>${extra}<button class="btn primary" type="button" id="ok">Fortsätt</button>`;
     box.querySelector("#ok").onclick=closeModal;render()}});
 }
 function openSight(i){
@@ -3098,7 +3126,7 @@ function openSight(i){
   if(rainy()){const m=modal(`<h2>${esc(name)}</h2><div class="sub">Det ösregnar i ${esc(c.n)} och bilderna blir bara grå. Vädret kan slå om till ${hourOf()<13?"eftermiddagen (efter 13:00)":"i morgon"}, så du kan vänta eller göra något annat så länge.</div>${hourOf()<13?`<button class="btn" type="button" id="wait">Vänta till 13:00</button>`:""}<button class="close" type="button">Stäng</button>`);
     const wb=m.querySelector("#wait");if(wb)wb.onclick=()=>{pass(13-hourOf());closeModal();render();toast(rainy()?"Det regnar fortfarande.":"Uppehåll! Nu går det att fotografera.")};return}
   const has=S.photos.some(p=>p.c===c.id&&p.s===i);
-  const m=modal(`<h2>${esc(name)}</h2><div class="sub">${has?"Du har redan en bild härifrån i albumet.":"Klubben vill ha bilder på särskilda platser. Är det här rätt motiv för något av dina uppdrag?"}</div><button class="btn primary" type="button" id="shoot">Ta en bild · ${S.film||0} kvar</button><button class="close" type="button">Avbryt</button>`);
+  const m=modal(`<h2>${esc(name)}</h2><div class="sub">${has?"Du har redan en bild härifrån i albumet.":"Klubben vill ha bilder på särskilda platser. Är det här rätt motiv för något av dina uppdrag?"}</div><button class="btn primary" type="button" id="shoot">Ta en bild · plats för ${S.film||0} i molnet</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#shoot").onclick=()=>{if(needFilm())return;closeModal();takePhoto(i)};
 }
 function takePhoto(i){
@@ -3120,31 +3148,35 @@ function takePhoto(i){
   },1150);
 }
 function openCafe(){
-  const cm=cafeMode(),c=here(),t=tierOf(c);
-  if(cm==="closed"){modal(`<h2>Stängt</h2><div class="sub">Kaféet öppnar 07:00. Det är natt, och gatorna är inte säkra. Hotellet är ett bättre val.</div><button class="close" type="button">Stäng</button>`);return}
-  if(cm==="cafe"){
+  const c=here(),t=tierOf(c);
+  if(!cafeOpen()){modal(`<h2>Kaféet har stängt</h2><div class="sub">Kaféet har öppet 07:00–19:00. Klockan är ${clock()}. På kvällen har puben öppet.</div><button class="close" type="button">Stäng</button>`);return}
+  {
     const m=modal(`<h2>Kaféet</h2><div class="sub">Köp en fika för 45 kr och var med i kaféets frågesport. Varje rätt svar ger extra energi.</div><button class="btn primary" type="button" id="go" ${S.money<45?"disabled":""}>Fika och spela · 1 tim</button><div class="opts">${commonJobBtn("cafe")}</div><button class="close" type="button">Avbryt</button>`);
     wireCommonJob(m);m.querySelector("#go").onclick=()=>{S.money-=45;runQuiz({title:"Fikafrågan",sub:"Tre frågor om kaffe och bakverk",qs:tradeQs(here(),3,"cafe",["cafebill"]),done:(right,box)=>{
       markDoneB(here(),"cafe");const gain=12+right*12;S.t+=1;S.energy=Math.min(100,Math.max(0,S.energy)+gain);
       box.innerHTML=`<h2>${right===3?"Alla rätt!":"Tack för fikat!"}</h2><div class="sub">${right} av 3 rätt</div><div class="result">+${gain} energi</div><button class="btn primary" type="button" id="ok">Fortsätt</button>`;box.querySelector("#ok").onclick=closeModal;render()}})};
     return}
+}
+function openPub(){
+  const c=here();
+  if(!pubOpen()){modal(`<h2>Puben har stängt</h2><div class="sub">Puben har öppet 17:00–02:00. Klockan är ${clock()}. Kaféet har öppet på dagen.</div><button class="close" type="button">Stäng</button>`);return}
   const per=r10(150*(1+TI[c.t]*.15));
   const m=modal(`<h2>Puben</h2><div class="sub">Kvällens frågesport. Varje rätt svar ger ${fmt(per)} kr. Tänk på att det kan vara farligt att gå hem sent.</div><button class="btn primary" type="button" id="go">Spela · 1,5 tim</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#go").onclick=()=>runQuiz({title:"Pubquiz",sub:"Tre frågor om öl, vin och drinkar",qs:tradeQs(here(),3,"pub",["pubround"]),done:(right,box)=>{
-    markDoneB(here(),"cafe");const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);maybeRob();
+    markDoneB(here(),"pub");const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);maybeRob();
     box.innerHTML=`<h2>${right?"Vinst!":"Ingen vinst i kväll"}</h2><div class="sub">${right} av 3 rätt · klockan är nu ${clock()}</div><div class="result">+${fmt(win)} kr</div><button class="btn primary" type="button" id="ok">Gå hem</button>`;box.querySelector("#ok").onclick=closeModal;render()}});
 }
 function openKiosk(){
   const c=here(),mp=mapPrice(c),own=hasCityMap(c),opt=(k,ic,t,r,p,dis)=>`<button class="opt" data-k="${k}" type="button" ${dis?"disabled":""}>${pIcon(ic)}<span><span class="t">${t}</span><span class="r">${r}</span></span><span class="p">${p}</span></button>`;
-  const m=modal(`<h2>Butiken</h2><div class="sub">Öppet dygnet runt. Du har ${S.film||0} bilder kvar på filmen.</div><div class="opts">
+  const m=modal(`<h2>Butiken</h2><div class="sub">Öppet dygnet runt. Du har plats för ${S.film||0} bilder till i molnet.</div><div class="opts">
     ${opt("map","map",`Stadskarta över ${esc(c.n)}`,own?"Du har redan en, den finns i menyn till höger":"Visar alla platser i staden, öppnas från menyn till höger",own?"Köpt":fmt(mp)+" kr",own||S.money<mp)}
-    ${opt("film","camera","Filmrulle",`${FILM.shots} bilder till kameran`,FILM.price+" kr",S.money<FILM.price)}
+    ${opt("film","camera","Mer molnlagring",`Plats för ${FILM.shots} bilder till i molnet`,FILM.price+" kr",S.money<FILM.price)}
     ${opt("shoes","walk","Löparskor",S.shoes?"Du har redan ett par":"Ergonomiska skor: du går lite fortare och orkar längre",S.shoes?"Köpt":fmt(SHOES)+" kr",S.shoes||S.money<SHOES)}
     ${opt("drink","cup","Energidryck till väskan",`+${DRINK.energy} energi när du dricker den · ${S.drinks||0} av ${MAXDRINK} i väskan`,DRINK.price+" kr",S.money<DRINK.price||(S.drinks||0)>=MAXDRINK)}
     ${commonJobBtn("kiosk")}</div><button class="close" type="button">Stäng</button>`);
   wireCommonJob(m);m.querySelectorAll(".opt[data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k;
     if(k==="drink"){S.money-=DRINK.price;S.drinks=(S.drinks||0)+1;toast(`Energidrycken ligger i väskan (${S.drinks} av ${MAXDRINK}). Tryck på burken uppe till höger för att dricka.`)}
-    else if(k==="film"){S.money-=FILM.price;S.film=(S.film||0)+FILM.shots;toast(`Ny filmrulle. ${S.film} bilder kvar.`)}
+    else if(k==="film"){S.money-=FILM.price;S.film=(S.film||0)+FILM.shots;toast(`Mer molnlagring! Plats för ${S.film} bilder.`)}
     else if(k==="shoes"){S.money-=SHOES;S.shoes=1;toast("Sköna skor på! Du går lite fortare och tröttnar inte lika fort.",2800)}
     else if(k==="map"){S.money-=mp;buyCityMap();toast(`Kartan över ${c.n} ligger nu i menyn till höger. Tryck på kartikonen för att se var allt ligger.`,3200)}
     closeModal();render()});
@@ -3282,7 +3314,7 @@ Object.assign(COMMON_JOBS,{cafe:{n:"Servitör",bank:"cafe",gen:["cafebill","disc
 commonQs=function(j,c){if(j.tourist)return localQs(c,4,["kultur","geo","hist"],j.gen);return tradeQs(c,4,j.bank,j.gen,j.local||0)};
 
 /* ================= The shop: city map, film, running shoes ================= */
-const FILM={price:90,shots:12},SHOES=2500;
+const FILM={price:90,shots:20},SHOES=2500;
 function renderDrinks(){const b=$("drinkbtn");if(!b||!S)return;const wv_=$("wov");if(wv_)wv_.classList.toggle("has",hasCityMap(here()));$("drinkn").textContent=S.drinks||0;b.disabled=!(S.drinks>0)}
 function drinkOne(){if(!(S.drinks>0))return;if(S.energy>=100){toast("Du är redan full av energi!");return}S.drinks--;S.energy=Math.min(100,Math.max(0,S.energy)+DRINK.energy);toast(`Glunk glunk! +${DRINK.energy} energi. ${S.drinks} kvar i väskan.`);save();render()}
 /* tap the map to walk there */
@@ -3295,7 +3327,7 @@ function buyCityMap(){const c=here();S.cmaps=S.cmaps||{};S.cmaps[c.id]=1;save()}
 const CM={on:false,k:1,ox:0,oy:0};
 function openCityMap(){const c=here();if(!hasCityMap(c)){modal(`<h2>Ingen stadskarta</h2><div class="sub">Du har ingen karta över ${esc(c.n)} än. Köp en i butiken, eller bo på Hotell Panorama, där en stadskarta ligger på rummet.</div><button class="close" type="button">Okej</button>`);return}
   keys.clear();joyV=[0,0];const ov=document.createElement("div");ov.className="cmap";ov.id="cmap";
-  ov.innerHTML=`<canvas></canvas><div class="cmap-top"><b>${esc(c.n)}</b><span>${(()=>{const ps=cityMap(c).pois.filter(p=>["job","cafe","sight"].includes(p.type));return `✓ ${ps.filter(p=>poiDone(c,p)).length} av ${ps.length} klara · `})()}Tryck på en plats för att gå dit</span></div><div class="cmap-btns"><button type="button" data-z="1.3" aria-label="Zooma in">+</button><button type="button" data-z="0.77" aria-label="Zooma ut">−</button><button type="button" id="cmx" aria-label="Stäng kartan">✕</button></div>`;
+  ov.innerHTML=`<canvas></canvas><div class="cmap-top"><b>${esc(c.n)}</b><span>${(()=>{const ps=cityMap(c).pois.filter(p=>["job","cafe","pub","sight","info"].includes(p.type));return `✓ ${ps.filter(p=>poiDone(c,p)).length} av ${ps.length} klara · `})()}Tryck på en plats för att gå dit</span></div><div class="cmap-btns"><button type="button" data-z="1.3" aria-label="Zooma in">+</button><button type="button" data-z="0.77" aria-label="Zooma ut">−</button><button type="button" id="cmx" aria-label="Stäng kartan">✕</button></div>`;
   document.body.appendChild(ov);CM.on=true;const cv=ov.querySelector("canvas"),m=cityMap(c),me=meXY();
   const fit=()=>{const W_=ov.clientWidth,H_=ov.clientHeight;CM.k=Math.min((H_-40)/(m.h+120),W_/(m.w*.55));CM.ox=W_/2-me[0]*CM.k;CM.oy=H_/2-me[1]*CM.k;clampCM(ov,m)};fit();drawCityMap();
   let drag=null;cv.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,m:0};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
@@ -3313,7 +3345,7 @@ function drawCityMap(){const ov=$("cmap");if(!ov)return;const cv=ov.querySelecto
   g.setTransform(d,0,0,d,0,0);g.fillStyle="#f5eedb";g.fillRect(0,0,W_,H_);g.save();g.setTransform(d*k,0,0,d*k,d*CM.ox,d*CM.oy);g.lineJoin="round";g.lineCap="round";
   drawPaperMap(g,c,m,wd,performance.now(),[-(CM.ox)/k-50,-(CM.oy)/k-50,(W_-CM.ox)/k+50,(H_-CM.oy)/k+50]);g.restore();
   const sc=(x,y)=>[CM.ox+x*k,CM.oy+y*k],f=foundList(c);g.setTransform(d,0,0,d,0,0);g.textAlign="center";g.textBaseline="top";
-  m.pois.forEach((p,i)=>{if(p.type==="info")return;const [x,y]=sc(...m.nodes[p.node]),col=p.type==="sight"?"#c13a2a":p.type==="lux"||p.type==="hostel"?"#c98a12":p.type==="job"&&CATS[JOB_CAT[p.job]]?CATS[JOB_CAT[p.job]].col:p.type==="travel"?"#1b2838":"#2648c9";
+  m.pois.forEach((p,i)=>{const [x,y]=sc(...m.nodes[p.node]),col=p.type==="info"?"#2a9d8f":p.type==="sight"?"#c13a2a":p.type==="lux"||p.type==="hostel"?"#c98a12":p.type==="job"&&CATS[JOB_CAT[p.job]]?CATS[JOB_CAT[p.job]].col:p.type==="travel"?"#1b2838":"#2648c9";
     const dn=poiDone(c,p);g.fillStyle=dn?"#3d9a4f":col;g.strokeStyle="#fff";g.lineWidth=2.5;g.beginPath();g.arc(x,y,13,0,7);g.fill();g.stroke();
     if(dn){g.strokeStyle="#fff";g.lineWidth=3;g.lineCap="round";g.lineJoin="round";g.beginPath();g.moveTo(x-5.5,y);g.lineTo(x-1.5,y+4.5);g.lineTo(x+6,y-4.5);g.stroke()}
     else{const ic=new Path2D(ICONP[poiIco(p)]||ICONP.info);g.save();g.translate(x-8.4,y-8.4);g.scale(.7,.7);g.strokeStyle="#fff";g.lineWidth=2.6;g.stroke(ic);g.restore()}
@@ -3321,7 +3353,7 @@ function drawCityMap(){const ov=$("cmap");if(!ov)return;const cv=ov.querySelecto
     g.beginPath();g.roundRect?g.roundRect(x-tw/2-5,y+16,tw+10,17,8):g.rect(x-tw/2-5,y+16,tw+10,17);g.fill();g.stroke();g.fillStyle="#1b2838";g.fillText(nm,x,y+18.5)});
   const [px,py]=sc(...meXY()),t=performance.now()/400;g.fillStyle="rgba(38,72,201,.25)";g.beginPath();g.arc(px,py,14+4*Math.sin(t),0,7);g.fill();g.fillStyle="#2648c9";g.strokeStyle="#fff";g.lineWidth=3;g.beginPath();g.arc(px,py,8,0,7);g.fill();g.stroke();
   g.font="800 11px Figtree, system-ui, sans-serif";g.fillStyle="#2648c9";g.fillText("DU",px,py-26)}
-function needFilm(){if((S.film||0)>0)return false;modal(`<h2>Slut på film</h2><div class="sub">Kameran är tom. Köp en ny filmrulle i butiken, ${FILM.shots} bilder för ${FILM.price} kr.</div><button class="close" type="button">Okej</button>`);return true}
+function needFilm(){if((S.film||0)>0)return false;modal(`<h2>Molnet är fullt</h2><div class="sub">Det finns ingen plats kvar för fler bilder i din molnlagring. Köp mer i butiken: plats för ${FILM.shots} bilder kostar ${FILM.price} kr.</div><button class="close" type="button">Okej</button>`);return true}
 
 /* ================= Taxi from the info kiosk to places you have already found ================= */
 function taxiRows(c){const m=cityMap(c),me=meXY(),f=foundList(c);
@@ -3775,11 +3807,11 @@ function jobGen(c,gens,taken){for(let n=0;n<40;n++){const g=PICK(gens),q=g[0]===
 jobQs=function(k){const c=here(),[cats,gens]=jobTopic(k),sig=!JOB_TOPIC[k];
   const trade=shuffle((JOB_NEUTRAL[k]||[]).map(i=>JOBS[k].q[i]).filter(q=>q&&!seen(q)));
   const local=[];for(const lvl of [0,1])for(const cat of cats)for(const q of placePool(c,cat)[lvl])if(!local.some(t=>t[0]===q[0]))local.push(q);
-  const out=[];const nTrade=sig?4:Math.max(2,4-Math.min(2,local.length));
+  const out=[];const nTrade=sig?5:Math.max(3,5-Math.min(2,local.length));
   for(const q of trade){if(out.length>=nTrade)break;out.push(q)}
-  for(const q of local){if(out.length>=4)break;if(!out.some(t=>t[0]===q[0]))out.push(q)}
-  for(const q of trade){if(out.length>=4)break;if(!out.includes(q))out.push(q)}
-  while(out.length<4)out.push(jobGen(c,gens,out));markSeen(out);return shuffle(out)};
+  for(const q of local){if(out.length>=5)break;if(!out.some(t=>t[0]===q[0]))out.push(q)}
+  for(const q of trade){if(out.length>=5)break;if(!out.includes(q))out.push(q)}
+  while(out.length<5)out.push(jobGen(c,gens,out));markSeen(out);return shuffle(out)};
 /* café, pub and the everyday jobs: the trade plus the local food, drink and sights */
 tradeQs=function(c,n,bank,gens,local=0){const t=shuffle(TRADE[bank].filter(q=>!seen(q))),out=[];
   const nLocal=bank==="cafe"||bank==="pub"?Math.min(2,n-1):local,nTrade=n-nLocal;
@@ -3877,12 +3909,12 @@ const JOB_DESC={
 function jobIntro(k){const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=r10(t.pay*(cert?1.5:1)),j=JOBS[k];
   const m=modal(`<div class="eyebrow" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Om yrket</div><h2 style="margin-top:4px">${esc(j.n)}</h2>${catDot(k)}
     <div class="fact" style="font-size:15.5px">${esc(JOB_DESC[k]||"Ett yrke som behövs i "+c.n+". Visa vad du kan!")}</div>
-    <div class="sub" style="margin-top:12px">Passet tar 6 timmar. Du får fyra frågor om yrket, och lönen beror på hur många du svarar rätt på.</div>
+    <div class="sub" style="margin-top:12px">Passet tar 6 timmar. Du får fem frågor om yrket. Lönen beror på hur många rätt du har, och med minst fyra rätt är jobbet klart.</div>
     <div class="result">${fmt(pay)} kr</div><button class="btn primary" type="button" id="start">Börja passet</button><button class="close" type="button">Inte nu</button>`,{center:true});
   m.querySelector("#start").onclick=()=>doJob(k)}
 const UJ=[];
 UJ.push(
-["sto","hist","Riksdagsledamot","Riksdagshuset","office",[
+["sto","hist","Riksdagsledamot","Riksdagshuset","parliament",[
  ["Hur många ledamöter har Sveriges riksdag?","349","100","500","250"],["Hur ofta är det val till riksdagen?","Vart fjärde år","Vartannat år","Vart femte år","Varje år"],["Vad heter riksdagens ordförande?","Talman","Statsminister","Kung","President"],["Vad kallas en grupp ledamöter som förbereder ärenden inom ett område?","Utskott","Kommun","Län","Departement"],
  ["Vad kallas ett förslag från en riksdagsledamot?","Motion","Proposition","Remiss","Dekret"],["Vad kallas ett lagförslag från regeringen?","Proposition","Motion","Interpellation","Petition"],["Hur många procent av rösterna krävs för att ett parti ska komma in i riksdagen?","4 procent","1 procent","10 procent","12 procent"],["På vilken ö i Stockholm ligger riksdagshuset?","Helgeandsholmen","Djurgården","Södermalm","Kungsholmen"]]],
 ["sto","konst","Möbeldesigner","Designstudion","gallery",[
@@ -4050,6 +4082,68 @@ const UDESC={
 const UGEN={geo:["walk","clock"],hist:["open","tour"],konst:["paint","open"],vet:["clock"],noje:["price"]};
 for(const [cid,cat,n,pl,kind,qs] of UJ){const k="u_"+cid+"_"+cat;JOBS[k]={n,q:qs};JOB_PLACE[k]={n:pl,kind};JOB_CAT[k]=cat;JOB_NEUTRAL[k]=qs.map((_,i)=>i);JOB_DESC[k]=UDESC[n]||"";JOB_TOPIC[k]=[[],UGEN[cat]];
   const list=CITY_JOBS[cid];if(!list)continue;const slot=cat==="noje"?["noje","sport"]:[cat],i=list.findIndex(j=>slot.includes(JOB_CAT[j])&&!Object.values(SIG).some(s=>s[0]===j));if(i>=0)list[i]=k}
+/* ================= Fact spots: two "visste du?" places per city ================= */
+const FACTS={
+lon:[["Big Ben","Big Ben är egentligen namnet på den stora klockan i tornet, inte tornet självt. Tornet heter sedan 2012 Elizabeth Tower."],["Tower Bridge","Tower Bridge öppnades 1894. Bron kan fällas upp så att höga fartyg kan segla in på Themsen."]],
+par:[["Eiffeltornet","Eiffeltornet byggdes till världsutställningen 1889 och skulle egentligen rivas efter 20 år. Det målas om ungefär vart sjunde år."],["Triumfbågen","Under Triumfbågen ligger den okände soldatens grav, där en evig låga har brunnit sedan 1923."]],
+rom:[["Spanska trappan","Spanska trappan har 135 steg och byggdes på 1720-talet. Den har fått sitt namn efter Spaniens ambassad vid torget nedanför."],["Piazza Navona","Piazza Navona har formen av en lång oval eftersom torget byggdes där en romersk idrottsarena låg för nästan 2 000 år sedan."]],
+bcn:[["La Rambla","La Rambla är en drygt en kilometer lång gågata från Plaça de Catalunya ner till hamnen, kantad av gatuartister och blomsterstånd."],["La Boqueria","La Boqueria är en av Europas mest kända saluhallar, med frukt, skinka och skaldjur. Den har funnits sedan 1800-talet."]],
+bln:[["Checkpoint Charlie","Checkpoint Charlie var den mest kända gränsövergången mellan Öst- och Västberlin under kalla kriget."],["Tiergarten","Tiergarten är en av Tysklands största stadsparker. Namnet betyder djurparken, eftersom den en gång var kungligt jaktområde."]],
+ath:[["Plaka","Plaka är Atens äldsta bostadskvarter, med smala gränder precis nedanför Akropolis."],["Panathinaikostadion","Panathinaikostadion är byggd helt i marmor. Här hölls de första moderna olympiska spelen 1896."]],
+ven:[["Markusplatsen","Markusplatsen är Venedigs största torg och den lägsta delen av staden, så den översvämmas först vid högvatten."],["Suckarnas bro","Suckarnas bro ledde till fängelset. Enligt legenden suckade fångarna när de såg Venedig för sista gången."]],
+ist:[["Galatatornet","Galatatornet är ett runt stentorn från 1300-talet med en av de bästa utsikterna över Bosporen och gamla stan."],["Basilikacisternen","Basilikacisternen är en underjordisk vattenreservoar från 500-talet med 336 marmorpelare."]],
+rey:[["Hallgrímskirkja","Hallgrímskirkja är Islands högsta kyrka. Dess form ska påminna om basaltpelare som bildas när lava stelnar."],["Harpa","Harpa är Reykjaviks konserthus vid hamnen. Glasfasaden glittrar i olika färger och påminner om basaltkristaller."]],
+nyc:[["Times Square","Times Square lyses upp av enorma reklamskärmar dygnet runt. Där släpps en glittrande kula vid varje nyår."],["Brooklyn Bridge","Brooklyn Bridge öppnades 1883 och var då världens längsta hängbro. Man kan gå över den på en gångväg ovanför bilarna."]],
+sfo:[["Chinatown","San Franciscos Chinatown är det äldsta kinesiska kvarteret i Nordamerika, grundat på 1840-talet."],["Painted Ladies","Painted Ladies är en rad färgglada trähus i viktoriansk stil som syns i många filmer och tv-serier."]],
+lax:[["Walk of Fame","På Hollywood Walk of Fame finns över 2 700 stjärnor i trottoaren med namnen på kända skådespelare och musiker."],["Venice Beach","Venice Beach är känt för sin strandpromenad med gatuartister, skateboardåkare och ett utomhusgym vid havet."]],
+was:[["Washingtonmonumentet","Washingtonmonumentet är en 169 meter hög obelisk. Färgen på stenen skiftar en bit upp, eftersom bygget gjorde ett långt uppehåll."],["Smithsonian","Smithsonian är världens största museikomplex, och nästan alla museerna har gratis inträde."]],
+yyz:[["Distillery District","Distillery District är ett gammalt bryggeriområde med tegelhus från 1800-talet, i dag fullt av kaféer och gallerier."],["Kensington Market","Kensington Market är ett färgglatt kvarter med matstånd och affärer från hela världen, typiskt för Torontos mångfald."]],
+van:[["Stanley Park","Stanley Park är större än Central Park i New York och omges av en lång promenadväg längs havet."],["Granville Island","Granville Island är en halvö under en bro, med en stor saluhall, konsthantverk och båtar."]],
+mex:[["Zócalo","Zócalo är ett av världens största torg. Här låg mitten av aztekernas huvudstad Tenochtitlan."],["Xochimilco","I Xochimilco åker man färgglada båtar på gamla kanaler som är rester av aztekernas flytande trädgårdar."]],
+hav:[["Plaza de la Catedral","Plaza de la Catedral domineras av en katedral i barockstil från 1700-talet, byggd av korallsten från havet."],["El Morro","El Morro är en fästning från 1500-talet vid inloppet till Havannas hamn, med en fyr som fortfarande lyser."]],
+chi:[["Millennium Park","Millennium Park är byggd ovanpå ett gammalt järnvägsområde och parkeringshus. Här står den blanka skulpturen Cloud Gate."],["Chicagofloden","Chicagofloden färgas grön på S:t Patricks dag. Floden vändes 1900 så att den rinner bort från Michigansjön."]],
+msy:[["Frenchmen Street","Frenchmen Street är gatan där lokalborna går för att lyssna på levande jazz, kväll efter kväll."],["Café du Monde","Café du Monde har sedan 1862 serverat beignets, friterade munkar täckta av florsocker, och kaffe med cikoria."]],
+mum:[["Gateway of India","Gateway of India är en stor triumfbåge vid hamnen, byggd till minne av ett kungabesök 1911."],["Marine Drive","Marine Drive är en lång strandpromenad. På kvällen ser gatlyktorna ut som ett pärlhalsband och kallas Drottningens halsband."]],
+agr:[["Mehtab Bagh","Mehtab Bagh är en trädgård på andra sidan floden där man ser Taj Mahal spegla sig i vattnet vid solnedgång."],["Itimad-ud-Daulah","Itimad-ud-Daulahs grav kallas ”Baby Taj”. Den byggdes före Taj Mahal och var den första i Indien med inlagd marmor."]],
+bkk:[["Chatuchak","Chatuchak är en av världens största helgmarknader, med över 10 000 stånd."],["Wat Arun","Wat Arun, Gryningens tempel, har torn täckta av bitar av porslin som glittrar i solen vid floden."]],
+dxb:[["Dubai Creek","Vid Dubai Creek korsar man vattnet i små träbåtar, abras, för bara några kronor. Här började staden som handelsplats."],["Dubaifontänen","Dubaifontänen vid Burj Khalifa sprutar vatten upp till 150 meter högt i takt med musik."]],
+pek:[["Himmelska fridens torg","Himmelska fridens torg är ett av världens största torg och ligger framför porten till Förbjudna staden."],["Himmelens tempel","I Himmelens tempel bad kejsarna om goda skördar. Den runda hallen är byggd utan en enda spik."]],
+hkg:[["Victoria Peak","Victoria Peak nås med en bergbana från 1888 som är så brant att husen ser ut att luta."],["Temple Street","Temple Street Night Market fylls varje kväll av matstånd, spåmän och gatusångare."]],
+tyo:[["Shibuyakorsningen","Vid Shibuyakorsningen går upp till tusentals människor över gatan samtidigt när ljuset slår om."],["Senso-ji","Senso-ji i Asakusa är Tokyos äldsta tempel, grundat på 600-talet. Man går in genom den stora porten med en jättelik röd lykta."]],
+kyo:[["Gion","Gion är Kyotos gamla nöjeskvarter med trähus och tehus, där man ibland kan se geishor på väg till arbetet."],["Nishikimarknaden","Nishikimarknaden kallas Kyotos kök. Den smala gatan har över hundra matstånd."]],
+sel:[["Cheonggyecheon","Cheonggyecheon är en bäck mitt i staden som grävdes fram under en motorväg och blev en grön promenad."],["Namdaemun","Namdaemun är en stor stadsport från 1300-talet och Seouls största traditionella marknad har fått samma namn."]],
+sin:[["Merlion Park","Merlion Park har en staty med lejonhuvud och fiskkropp som sprutar vatten. Lejonet står för stadens namn, som betyder lejonstaden."],["Chinatown","I Singapores Chinatown finns ett buddhisttempel och ett hinduiskt tempel nära varandra, ett tecken på stadens blandning av kulturer."]],
+cai:[["Khan el-Khalili","Khan el-Khalili är en basar från 1300-talet, full av lyktor, kryddor och smycken."],["Citadellet","Citadellet är en fästning från 1100-talet byggd av sultanen Saladin. Den har utsikt över hela staden."]],
+nbo:[["Nairobi nationalpark","Nairobi nationalpark ligger bara några mil från stadens centrum. Där kan man se lejon och giraffer med skyskrapor i bakgrunden."],["Giraffcentret","På giraffcentret kan man mata utrotningshotade Rothschildgiraffer från en hög plattform."]],
+cpt:[["Bo-Kaap","Bo-Kaap är ett kvarter med husen målade i starka färger, på sluttningen av Signal Hill."],["Kirstenbosch","Kirstenbosch är en botanisk trädgård vid Taffelbergets fot, med en gångbro bland trädtopparna."]],
+rak:[["Bahiapalatset","Bahiapalatset är ett palats från 1800-talet med snidade tak och mosaiker i rum efter rum."],["Medersa Ben Youssef","Medersa Ben Youssef var en koranskola där elever bodde i små rum runt en vacker innergård."]],
+znz:[["Freddie Mercurys hus","I Stone Town föddes Queens sångare Freddie Mercury 1946. Ett litet museum berättar om hans liv."],["Gamla fortet","Gamla fortet byggdes av omaner på 1600-talet och är den äldsta byggnaden i Stone Town."]],
+acc:[["Makola-marknaden","Makola är Accras största marknad, där man kan köpa allt från tyger till kryddor."],["Jamestown","Jamestown är en av Accras äldsta stadsdelar, med en röd-vit fyr och fiskebåtar på stranden."]],
+add:[["Merkato","Merkato räknas som en av Afrikas största utomhusmarknader."],["Entoto","Entotoberget ovanför staden ligger på cirka 3 000 meter och var platsen där kejsaren Menelik II grundade staden."]],
+dkr:[["Afrikas västligaste punkt","Pointe des Almadies i Dakar är den västligaste punkten på det afrikanska fastlandet."],["Sandagamarknaden","Sandagamarknaden är en livlig marknad i centrum med fisk, frukt och tyger."]],
+lvi:[["Livingstonemuseet","Livingstonemuseet visar brev och kartor från upptäcktsresanden David Livingstone."],["Victoriafallsbron","Victoriafallsbron från 1905 förbinder Zambia och Zimbabwe över Zambezifloden."]],
+tnr:[["Anosysjön","Anosysjön mitt i staden är formad som ett hjärta och kantas av jakarandaträd som blommar lila."],["Analakely","Analakely är stadens livliga marknadskvarter, med trappor upp mot den gamla övre staden."]],
+rio:[["Sockertoppen","Sockertoppen är ett berg vid hamninloppet som man åker upp till med linbana i två etapper."],["Escadaria Selarón","Selaróntrappan är täckt av över 2 000 färgglada kakelplattor från hela världen."]],
+cus:[["Plaza de Armas","Plaza de Armas i Cusco var inkornas huvudtorg innan spanjorerna byggde katedralen där."],["Stenen med tolv vinklar","I en mur i Cusco sitter en sten med tolv hörn som passar perfekt mot grannstenarna utan murbruk."]],
+bue:[["Caminito","Caminito är en färgglad gata i La Boca, där husen målades med överbliven båtfärg."],["Teatro Colón","Teatro Colón är ett av världens främsta operahus och är känt för sin fantastiska akustik."]],
+scl:[["Mercado Central","Mercado Central är en saluhall med tak av gjutjärn, berömd för sina fiskrätter."],["Barrio Bellavista","Bellavista är ett konstnärskvarter med väggmålningar och ett av poeten Pablo Nerudas hus."]],
+lim:[["Barranco","Barranco är Limas konstnärskvarter. Där finns Suckarnas bro, där man ska hålla andan när man går över första gången."],["Larcomuseet","Larcomuseet har tusentals keramikföremål från kulturer som fanns i Peru långt före inkafolket."]],
+ctg:[["Las Bóvedas","Las Bóvedas är 23 valv i stadsmuren som en gång var fängelse och i dag är hantverksbutiker."],["Plaza de Bolívar","Plaza de Bolívar är ett skuggigt torg med en ryttarstaty av befriaren Simón Bolívar."]],
+uio:[["La Ronda","La Ronda är en av Quitos äldsta gator, med balkonger, hantverk och musik på kvällarna."],["Teleférico","Linbanan TelefériQo tar dig upp till nästan 4 000 meters höjd på vulkanen Pichincha."]],
+mao:[["Mercado Adolpho Lisboa","Saluhallen Adolpho Lisboa från 1883 är byggd av järn som skeppades från Europa."],["Ponta Negra","Ponta Negra är en flodstrand vid Rio Negro där man badar i mörkt flodvatten."]],
+lpb:[["Häxmarknaden","På häxmarknaden säljs örter, amuletter och torkade lamafoster som enligt tradition ger tur till nya hus."],["Plaza Murillo","Plaza Murillo är La Paz huvudtorg med presidentpalatset och regeringsbyggnader."]],
+ush:[["Världens ände-järnvägen","Tren del Fin del Mundo är en liten ånglokbana som en gång körde fångar till skogen och nu kör turister."],["Gamla fängelset","Ushuaias gamla fängelse från 1902 är i dag ett museum. Staden växte upp kring fängelset."]],
+syd:[["Bondi Beach","Bondi Beach är en av världens mest kända stränder. Där finns en havspool som fylls av vågorna."],["The Rocks","The Rocks är Sydneys äldsta kvarter, där de första brittiska fartygen kom 1788."]],
+mel:[["Hosier Lane","Hosier Lane är en gränd där väggarna är täckta av gatukonst som ständigt målas över med ny."],["Queen Victoria Market","Queen Victoria Market är en av södra halvklotets största utomhusmarknader, öppen sedan 1878."]],
+akl:[["Mount Eden","Mount Eden är en slocknad vulkan mitt i staden, med en djup krater som är helig för maorierna."],["Harbour Bridge","Auckland Harbour Bridge kan man klättra upp på eller hoppa bungyjump från."]],
+cns:[["Esplanade Lagoon","Esplanade Lagoon är en stor gratis saltvattenpool vid havet, eftersom havet nära Cairns har farliga maneter."],["Kuranda Skyrail","Skyrail är en linbana som svävar över en av världens äldsta regnskogar."]],
+asp:[["Todd River","Todd River är nästan alltid torr. Varje år ordnas en båttävling där man springer med bottenlösa båtar i sanden."],["Anzac Hill","Anzac Hill är en kulle med utsikt över hela Alice Springs och de röda MacDonnellbergen."]],
+per:[["Kings Park","Kings Park är en av världens största stadsparker, större än Central Park i New York."],["Fremantle","I hamnstaden Fremantle finns ett gammalt fängelse byggt av fångar på 1850-talet, i dag ett världsarv."]],
+wlg:[["Beehive","Nya Zeelands regeringsbyggnad kallas Beehive, bikupan, för sin runda form."],["Cuba Street","Cuba Street är en färgglad gata med kaféer, gatuartister och en fontän med hinkar som tippar vatten."]],
+zqn:[["Arrowtown","Arrowtown är en gammal guldgrävarby i närheten, med kinesiska guldgrävares hyddor bevarade."],["TSS Earnslaw","TSS Earnslaw är en koleldad ångbåt från 1912 som fortfarande kör turister på Lake Wakatipu."]],
+hnl:[["Iolani Palace","Iolani Palace är det enda kungliga palatset i USA. Här bodde Hawaiis sista kungar och drottning."],["Kalakaua Avenue","Kalakaua Avenue är Waikikis huvudgata, med surfbutiker och en staty av surfaren Duke Kahanamoku."]],
+ppt:[["To'ata","To'ata är en stor utomhusscen vid havet där dans- och sångfestivalen Heiva hålls varje juli."],["Roulottes","På kvällarna parkerar matvagnar, roulottes, vid hamnen i Papeete och säljer allt från crêpes till rå fisk."]]};
+
 /* ================= Quiz engine ================= */
 function runQuiz({title,sub,qs,done}){
   const box=modal("",{center:true,dismiss:false});let i=0,right=0;const res=[];
@@ -4144,7 +4238,7 @@ function renderBag(){
      return `<div class="letter"><div class="lt"><span>${t.name}</span><span>${fmt(t.reward)} kr</span></div><p>${esc(m.clue)}</p>${tip?`<span class="tip">Tips: ${esc(m.c)}</span>`:`<button class="linkbtn" data-tip="${id}" type="button" ${S.money<TIP_COST?"disabled":""}>Köp tips om landet (${TIP_COST} kr)</button>`}</div>`}).join("")}</div></div>
    <div><div class="sec-h"><span>Fotoalbum</span><span>${S.photos.length} ${S.photos.length===1?"bild":"bilder"}</span></div>${photos.length?`<div class="album">${photos.map((p,i)=>`<div class="polaroid" style="--r:${((i*37)%7)-3}deg"><canvas data-pi="${S.photos.length-1-i}"></canvas><div class="cap">${esc(BY[p.c].s[p.s])}<small>${esc(BY[p.c].n)} · dag ${p.d}</small></div></div>`).join("")}</div>`:`<div class="empty">Inga bilder än. Gå till Sevärdheter i en stad när det är ljust ute.</div>`}</div>
    <div><div class="sec-h"><span>Yrkescertifikat</span><span>${S.certs.length} av ${Object.keys(JOBS).length}</span></div><div class="chips">${Object.keys(JOBS).map(k=>`<span class="${S.certs.includes(k)?"":"off"}">${JOBS[k].n}</span>`).join("")}</div></div>
-   <div><div class="sec-h"><span>Utrustning</span></div><div class="chips"><span>Film: ${S.film||0} bilder</span><span class="${S.drinks?"":"off"}">Energidryck: ${S.drinks||0} av ${MAXDRINK}</span><span class="${S.shoes?"":"off"}">Löparskor</span><span class="${Object.keys(S.cmaps||{}).length?"":"off"}">Stadskartor: ${Object.keys(S.cmaps||{}).map(id=>BY[id].n).join(", ")||"inga"}</span></div></div>
+   <div><div class="sec-h"><span>Utrustning</span></div><div class="chips"><span>Molnet: plats för ${S.film||0} bilder</span><span class="${S.drinks?"":"off"}">Energidryck: ${S.drinks||0} av ${MAXDRINK}</span><span class="${S.shoes?"":"off"}">Löparskor</span><span class="${Object.keys(S.cmaps||{}).length?"":"off"}">Stadskartor: ${Object.keys(S.cmaps||{}).map(id=>BY[id].n).join(", ")||"inga"}</span></div></div>
    <div class="statrow"><div><b>${S.trips}</b><span>Resor</span></div><div><b>${fmt(S.km)}</b><span>Km</span></div><div><b>${S.visited.length}</b><span>Städer</span></div></div>
    <div><div class="sec-h"><span>Inställningar</span></div><div style="font-size:13px;color:var(--muted)">Spela med</div>${handPicker()}</div>
    <button class="linkbtn" id="restart" type="button">Börja om från början</button>`;wireHand($("bag"));
