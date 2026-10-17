@@ -184,7 +184,7 @@ main{position:relative;min-height:0}
 .cmap{position:fixed;inset:0;z-index:60;background:#f5eedb;touch-action:none}.cmap canvas{position:absolute;inset:0;width:100%;height:100%}
 .cmap-top{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:max(12px,env(safe-area-inset-top,0px));right:64px;background:#1b2838;color:#fbf8f1;border-radius:14px;padding:9px 14px;font:600 13px Figtree,system-ui,sans-serif;display:flex;flex-direction:column;gap:2px;box-shadow:0 4px 14px #0003}.cmap-top b{font:800 17px Unbounded,sans-serif}
 .cmap-btns{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:max(12px,env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}.cmap-btns button{width:42px;height:42px;border-radius:12px;border:1px solid #0002;background:#fbf8f1;font:800 20px Figtree,system-ui,sans-serif;color:#1b2838;box-shadow:0 2px 6px #0003}
-#drinkbtn{position:relative}#tab-bag>.inner:first-child{padding-top:calc(var(--top) + 8px)}#tab-map .mapback,#mapback{margin-top:0}.hud .bar i.low{background:#ff5b4a!important}
+[hidden]{display:none!important}#drinkbtn{position:relative}#tab-bag>.inner:first-child{padding-top:calc(var(--top) + 8px)}#tab-map .mapback,#mapback{margin-top:0}.hud .bar i.low{background:#ff5b4a!important}
 .setlist{display:grid;gap:10px;margin-top:12px}.setlist .row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:600}#drinkbtn[disabled]{opacity:.45}#drinkn{position:absolute;right:-5px;top:-5px;min-width:18px;height:18px;border-radius:9px;background:#e8742a;color:#fff;font:800 11px/18px Figtree,system-ui,sans-serif;text-align:center;padding:0 4px}
 .mapctl button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-size:20px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px #0002}
 .conts{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.conts::-webkit-scrollbar{display:none}
@@ -2876,7 +2876,7 @@ function drawStreet(now){
     g.strokeStyle="#1b2838";g.lineWidth=Math.max(2,1.2*s);g.lineCap="round";const [a1,a2]=P(-5,0,1.4),[b1,b2]=P(5,0,1.4),[c1,c2]=P(5.5,0,13),[h1,h2]=P(5.5,0,13);
     g.beginPath();g.moveTo(a1,a2);g.lineTo(b1,b2);g.lineTo(c1,c2);g.stroke();g.beginPath();g.moveTo(h1-3*s,h2);g.lineTo(h1+3*s,h2);g.stroke();
     for(const [wx,wy] of [P(-5,0,1),P(5,0,1)]){g.fillStyle="#333";g.beginPath();g.arc(wx,wy,1.6*s,0,7);g.fill()}
-    const pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz)}})}
+    const pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz);if(performance.now()<(T.wait||0)){const [bx,by]=proj(T.x,T.y,40);g.font=`900 ${Math.max(16,7*s)}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="bottom";g.lineWidth=4;g.strokeStyle="#fff";g.fillStyle="#e2392b";g.strokeText("!",bx,by);g.fillText("!",bx,by)}}})}
   function shadow(x,y){const [sx,sy]=proj(x,y,0);g.fillStyle="rgba(0,0,0,.22)";g.beginPath();g.ellipse(sx,sy,2.8*SC*s,2.8*SC*s*KY,0,0,7);g.fill()}
   objs.sort((a,b)=>a.y-b.y);for(const o of objs)o.f();
   // light and weather
@@ -2898,14 +2898,16 @@ const speedMul=()=>(S.shoes?1.15:1)*(S.energy<=10?.55:1);
 const TOURIST_W={phase:0,col:{shirt:"#f4a259",pants:"#5a6f88",skin:"#f1c7a1",pack:"#2a9d8f",cap:"#e9c46a"}};
 const THIEF_W={phase:0,col:{shirt:"#2b2b33",pants:"#1d1d22",skin:"#c99a74",pack:null,cap:"#111"}};
 /* the night thief on an e-scooter: chases you until you reach a building */
+function inView(x,y,p,m=0){const s=(W3.W/150)/W3.zoom,dx=(x-p[0])*s,dy=(y-p[1])*s*KY;return Math.abs(dx)<W3.W/2-30-m&&dy>-(W3.H*.62-140-m)&&dy<W3.H*.38-(m>0?230:150)-m}
 function thiefStep(dt,wd,p){const night=isDark();let T=W3.thief;
   if(!night||modalOpen()||busy){if(T){W3.thief=null;W3.thiefCool=performance.now()+(night?40000:0)}return}
   if(!T){if(W3.thiefRoll==null||S.t<W3.thiefRoll)W3.thiefRoll=S.t;if(S.t-W3.thiefRoll<.5)return;W3.thiefRoll=S.t;
-    if(performance.now()<(W3.thiefCool||0)||S.money<50||Math.random()>.25)return;
-    let sp=null;const f=W3.dir||0;for(let k=0;k<40&&!sp;k++){const a=f+(Math.random()-.5)*(k<20?.6:1.6),r=120+Math.random()*40,x=p[0]+Math.sin(a)*r,y=p[1]+Math.cos(a)*r;if(wd.walkable(x,y))sp=[x,y]}
-    if(!sp)sp=findSpot(wd,p[0],p[1],120,160);if(!sp)return;
-    T=W3.thief={x:sp[0],y:sp[1],dir:0};if(!S.thiefSeen){S.thiefSeen=1;save();toast("Tips: På natten kan ficktjuvar på elsparkcykel komma rakt emot dig. Vänd och fly in på ett öppet ställe!",4500)}if(AMB.on&&AMB.scooter)AMB.scooter();return}
-  const dx=p[0]-T.x,dy=p[1]-T.y,L=Math.hypot(dx,dy);if(L>210){W3.thief=null;W3.thiefCool=performance.now()+60000;toast("Du skakade av dig tjuven!");return}
+    if(performance.now()<(W3.thiefCool||0)||S.money<50||Math.random()>.5)return;
+    let sp=null;const f=W3.dir||0;for(let k=0;k<80&&!sp;k++){const a=f+(Math.random()-.5)*(k<30?.7:k<60?1.8:6.28),r=60+Math.random()*90,x=p[0]+Math.sin(a)*r,y=p[1]+Math.cos(a)*r;if(wd.walkable(x,y)&&inView(x,y,p,10))sp=[x,y]}
+    if(!sp)return;
+    T=W3.thief={x:sp[0],y:sp[1],dir:0,wait:performance.now()+2000};if(!S.thiefSeen){S.thiefSeen=1;save();toast("Tips: På natten kan ficktjuvar på elsparkcykel komma rakt emot dig. Vänd och fly in på ett öppet ställe!",4500)}if(AMB.on&&AMB.scooter)AMB.scooter();return}
+  const dx=p[0]-T.x,dy=p[1]-T.y,L=Math.hypot(dx,dy);if(L>210||(L>90&&!inView(T.x,T.y,p,-40))){W3.thief=null;W3.thiefCool=performance.now()+60000;toast("Du skakade av dig tjuven!");return}
+  if(performance.now()<(T.wait||0)){T.dir=Math.atan2(dx,dy);return}
   if(L<7){const a=Math.min(1500,r10(S.money*.4));W3.thief=null;W3.thiefCool=performance.now()+90000;if(a>0){S.money-=a;EV.push({type:"rob",a});keys.clear();joyV=[0,0];renderHeader();save();flushEvents()}return}
   const v=PLAYER_SPEED*dt,nx=T.x+dx/L*v,ny=T.y+dy/L*v;T.dir=Math.atan2(dx,dy);if(wd.walkable(nx,ny)){T.x=nx;T.y=ny}else if(wd.walkable(nx,T.y))T.x=nx;else if(wd.walkable(T.x,ny))T.y=ny;else{T.x=nx;T.y=ny}}
 const TREE_IMG=(()=>{const cv=document.createElement("canvas");cv.width=128;cv.height=192;const g=cv.getContext("2d");g.lineWidth=4;g.strokeStyle="#1b2838";
@@ -4407,7 +4409,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 41 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 42 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)}}
