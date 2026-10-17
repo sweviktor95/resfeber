@@ -2827,6 +2827,8 @@ function drawStreet(now){
   drawPaperMap(g,c,m,wd,now,[vx0,vy0,vx1,vy1]);
   if(W3.target){const [tx,ty]=W3.target,k=1+.15*Math.sin(now/180);g.strokeStyle="#c13a2a";g.lineWidth=1.6;g.beginPath();g.arc(tx,ty,5*k,0,7);g.stroke();g.beginPath();g.moveTo(tx-2.5,ty-2.5);g.lineTo(tx+2.5,ty+2.5);g.moveTo(tx+2.5,ty-2.5);g.lineTo(tx-2.5,ty+2.5);g.stroke()}
   m.pois.forEach((q,i)=>{if(!isFound(c,i))return;const d0=m.nodes[q.node],r=16*Math.min(1,W3.pois[i]?W3.pois[i].s*1.5:1),pulse=W3.inside===i?1:.75+.25*Math.sin(now/400);
+    if(poiDone(c,q)){g.fillStyle="rgba(61,154,79,.55)";g.beginPath();g.arc(d0[0],d0[1],r,0,7);g.fill();g.strokeStyle="#2f7d3e";g.lineWidth=2;g.stroke();
+      if(r>8){g.strokeStyle="#fff";g.lineWidth=3.2;g.lineCap="round";g.lineJoin="round";g.beginPath();g.moveTo(d0[0]-r*.42,d0[1]+r*.02);g.lineTo(d0[0]-r*.1,d0[1]+r*.36);g.lineTo(d0[0]+r*.48,d0[1]-r*.34);g.stroke()}return}
     g.fillStyle="rgba(27,40,56,.22)";g.beginPath();g.arc(d0[0],d0[1],r,0,7);g.fill();g.strokeStyle=`rgba(229,69,43,${.85*pulse})`;g.lineWidth=2;g.setLineDash([5,3]);g.stroke();g.setLineDash([])});
   g.restore();
   for(const l of m.labels||[]){const [sx,sy]=proj(l.p[0],l.p[1],0);if(sx<-120||sx>Wp+120||sy<-30||sy>Hp+30)continue;g.textAlign="center";
@@ -2947,8 +2949,13 @@ function renderPlaces(){
     toast(`${poiName(p,c)} ligger ca ${walkMinutes(p)} min åt ${dirTo(meXY(),m.nodes[p.node])}.`,2400)});
 }
 
+/* a building you have finished turns green and stays closed */
+function poiDone(c,p){if(p.type==="job")return jobsDone(c).includes(p.job);if(p.type==="cafe")return ((S.doneB||{})[c.id]||[]).includes("cafe");
+  if(p.type==="sight")return S.photos.some(ph=>ph.c===c.id&&ph.s===p.i)&&!(S.missions.includes(c.id)&&p.i===c.k);return false}
+function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
   if(busy)return;
+  if(poiDone(here(),p)){toast(`✓ Klart här: ${poiName(p,here())}. Fortsätt till nästa ställe!`,2200);return}
   switch(p.type){
     case "travel":S.hub=p.mode;S.hubName=p.n;mapInit=false;setTab("map");return;
     case "lux":return openHotel("lux");
@@ -3098,13 +3105,13 @@ function openCafe(){
   if(cm==="cafe"){
     const m=modal(`<h2>Kaféet</h2><div class="sub">Köp en fika för 45 kr och var med i kaféets frågesport. Varje rätt svar ger extra energi.</div><button class="btn primary" type="button" id="go" ${S.money<45?"disabled":""}>Fika och spela · 1 tim</button><div class="opts">${commonJobBtn("cafe")}</div><button class="close" type="button">Avbryt</button>`);
     wireCommonJob(m);m.querySelector("#go").onclick=()=>{S.money-=45;runQuiz({title:"Fikafrågan",sub:"Tre frågor om kaffe och bakverk",qs:tradeQs(here(),3,"cafe",["cafebill"]),done:(right,box)=>{
-      const gain=12+right*12;S.t+=1;S.energy=Math.min(100,Math.max(0,S.energy)+gain);
+      markDoneB(here(),"cafe");const gain=12+right*12;S.t+=1;S.energy=Math.min(100,Math.max(0,S.energy)+gain);
       box.innerHTML=`<h2>${right===3?"Alla rätt!":"Tack för fikat!"}</h2><div class="sub">${right} av 3 rätt</div><div class="result">+${gain} energi</div><button class="btn primary" type="button" id="ok">Fortsätt</button>`;box.querySelector("#ok").onclick=closeModal;render()}})};
     return}
   const per=r10(150*(1+TI[c.t]*.15));
   const m=modal(`<h2>Puben</h2><div class="sub">Kvällens frågesport. Varje rätt svar ger ${fmt(per)} kr. Tänk på att det kan vara farligt att gå hem sent.</div><button class="btn primary" type="button" id="go">Spela · 1,5 tim</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#go").onclick=()=>runQuiz({title:"Pubquiz",sub:"Tre frågor om öl, vin och drinkar",qs:tradeQs(here(),3,"pub",["pubround"]),done:(right,box)=>{
-    const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);maybeRob();
+    markDoneB(here(),"cafe");const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);maybeRob();
     box.innerHTML=`<h2>${right?"Vinst!":"Ingen vinst i kväll"}</h2><div class="sub">${right} av 3 rätt · klockan är nu ${clock()}</div><div class="result">+${fmt(win)} kr</div><button class="btn primary" type="button" id="ok">Gå hem</button>`;box.querySelector("#ok").onclick=closeModal;render()}});
 }
 function openKiosk(){
@@ -3268,7 +3275,7 @@ function buyCityMap(){const c=here();S.cmaps=S.cmaps||{};S.cmaps[c.id]=1;save()}
 const CM={on:false,k:1,ox:0,oy:0};
 function openCityMap(){const c=here();if(!hasCityMap(c)){modal(`<h2>Ingen stadskarta</h2><div class="sub">Du har ingen karta över ${esc(c.n)} än. Köp en i butiken, eller bo på Hotell Panorama, där en stadskarta ligger på rummet.</div><button class="close" type="button">Okej</button>`);return}
   keys.clear();joyV=[0,0];const ov=document.createElement("div");ov.className="cmap";ov.id="cmap";
-  ov.innerHTML=`<canvas></canvas><div class="cmap-top"><b>${esc(c.n)}</b><span>Tryck på en plats för att gå dit</span></div><div class="cmap-btns"><button type="button" data-z="1.3" aria-label="Zooma in">+</button><button type="button" data-z="0.77" aria-label="Zooma ut">−</button><button type="button" id="cmx" aria-label="Stäng kartan">✕</button></div>`;
+  ov.innerHTML=`<canvas></canvas><div class="cmap-top"><b>${esc(c.n)}</b><span>${(()=>{const ps=cityMap(c).pois.filter(p=>["job","cafe","sight"].includes(p.type));return `✓ ${ps.filter(p=>poiDone(c,p)).length} av ${ps.length} klara · `})()}Tryck på en plats för att gå dit</span></div><div class="cmap-btns"><button type="button" data-z="1.3" aria-label="Zooma in">+</button><button type="button" data-z="0.77" aria-label="Zooma ut">−</button><button type="button" id="cmx" aria-label="Stäng kartan">✕</button></div>`;
   document.body.appendChild(ov);CM.on=true;const cv=ov.querySelector("canvas"),m=cityMap(c),me=meXY();
   const fit=()=>{const W_=ov.clientWidth,H_=ov.clientHeight;CM.k=Math.min((H_-40)/(m.h+120),W_/(m.w*.55));CM.ox=W_/2-me[0]*CM.k;CM.oy=H_/2-me[1]*CM.k;clampCM(ov,m)};fit();drawCityMap();
   let drag=null;cv.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,m:0};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
@@ -3287,9 +3294,10 @@ function drawCityMap(){const ov=$("cmap");if(!ov)return;const cv=ov.querySelecto
   drawPaperMap(g,c,m,wd,performance.now(),[-(CM.ox)/k-50,-(CM.oy)/k-50,(W_-CM.ox)/k+50,(H_-CM.oy)/k+50]);g.restore();
   const sc=(x,y)=>[CM.ox+x*k,CM.oy+y*k],f=foundList(c);g.setTransform(d,0,0,d,0,0);g.textAlign="center";g.textBaseline="top";
   m.pois.forEach((p,i)=>{if(p.type==="info")return;const [x,y]=sc(...m.nodes[p.node]),col=p.type==="sight"?"#c13a2a":p.type==="lux"||p.type==="hostel"?"#c98a12":p.type==="job"&&CATS[JOB_CAT[p.job]]?CATS[JOB_CAT[p.job]].col:p.type==="travel"?"#1b2838":"#2648c9";
-    g.fillStyle=col;g.strokeStyle="#fff";g.lineWidth=2.5;g.beginPath();g.arc(x,y,13,0,7);g.fill();g.stroke();
-    const ic=new Path2D(ICONP[poiIco(p)]||ICONP.info);g.save();g.translate(x-8.4,y-8.4);g.scale(.7,.7);g.strokeStyle="#fff";g.lineWidth=2.6;g.stroke(ic);g.restore();
-    const nm=poiName(p,c);g.font="700 11.5px Figtree, system-ui, sans-serif";const tw=g.measureText(nm).width;g.fillStyle=f.includes(i)?"#fbf8f1":"#fff3c4";g.strokeStyle="#1b2838";g.lineWidth=1.2;
+    const dn=poiDone(c,p);g.fillStyle=dn?"#3d9a4f":col;g.strokeStyle="#fff";g.lineWidth=2.5;g.beginPath();g.arc(x,y,13,0,7);g.fill();g.stroke();
+    if(dn){g.strokeStyle="#fff";g.lineWidth=3;g.lineCap="round";g.lineJoin="round";g.beginPath();g.moveTo(x-5.5,y);g.lineTo(x-1.5,y+4.5);g.lineTo(x+6,y-4.5);g.stroke()}
+    else{const ic=new Path2D(ICONP[poiIco(p)]||ICONP.info);g.save();g.translate(x-8.4,y-8.4);g.scale(.7,.7);g.strokeStyle="#fff";g.lineWidth=2.6;g.stroke(ic);g.restore()}
+    const nm=poiName(p,c);g.font="700 11.5px Figtree, system-ui, sans-serif";const tw=g.measureText(nm).width;g.fillStyle=dn?"#d6f0d9":f.includes(i)?"#fbf8f1":"#fff3c4";g.strokeStyle="#1b2838";g.lineWidth=1.2;
     g.beginPath();g.roundRect?g.roundRect(x-tw/2-5,y+16,tw+10,17,8):g.rect(x-tw/2-5,y+16,tw+10,17);g.fill();g.stroke();g.fillStyle="#1b2838";g.fillText(nm,x,y+18.5)});
   const [px,py]=sc(...meXY()),t=performance.now()/400;g.fillStyle="rgba(38,72,201,.25)";g.beginPath();g.arc(px,py,14+4*Math.sin(t),0,7);g.fill();g.fillStyle="#2648c9";g.strokeStyle="#fff";g.lineWidth=3;g.beginPath();g.arc(px,py,8,0,7);g.fill();g.stroke();
   g.font="800 11px Figtree, system-ui, sans-serif";g.fillStyle="#2648c9";g.fillText("DU",px,py-26)}
