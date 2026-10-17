@@ -2799,9 +2799,13 @@ function w3Build(c){
 }
 const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 function findSpot(wd,x,y,rmin,rmax,R=Math.random){for(let k=0;k<60;k++){const a=R()*6.283,r=rmin+R()*(rmax-rmin),px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;if(wd.walkable(px,py))return [px,py]}return null}
-function dayItems(c){const m=cityMap(c),wd=buildWorld(c),R=rng(hash(c.id+":"+dayOf(c))),out=[],types=["coin","coin","tourist","paper","coin"];if(!S.picked)S.picked=[];
-  for(let i=0;i<4;i++){let pt=null;for(let k=0;k<80&&!pt;k++){const x=40+R()*(m.w-80),y=40+R()*(m.h-80);if(wd.walkable(x,y))pt=[x,y]}const key=`${c.id}:${dayOf(c)}:${i}`;
-    if(pt&&!S.picked.includes(key))out.push({t:types[Math.floor(R()*types.length)],x:pt[0],y:pt[1],key,amt:r10(30+R()*120)})}return out}
+function dayItems(c){const m=cityMap(c),wd=buildWorld(c),out=[];if(!S.picked)S.picked=[];if(!S.bonus)S.bonus=[];
+  const spot=R=>{for(let k=0;k<80;k++){const x=40+R()*(m.w-80),y=40+R()*(m.h-80);if(wd.walkable(x,y))return [x,y]}return null};
+  // a few coins every day
+  const R=rng(hash(c.id+":"+dayOf(c)));for(let i=0;i<3;i++){const pt=spot(R),key=`${c.id}:${dayOf(c)}:${i}`;if(pt&&!S.picked.includes(key))out.push({t:"coin",x:pt[0],y:pt[1],key,amt:r10(30+R()*120)})}
+  // one newspaper and one lost tourist per city, once per game
+  const R2=rng(hash(c.id+":bonus"));for(const t of ["paper","tourist"]){const pt=spot(R2),key=`${c.id}:once:${t}`;if(pt&&!S.bonus.includes(key))out.push({t,x:pt[0],y:pt[1],key,amt:0})}
+  return out}
 function itemCanvas(t){const cv=document.createElement("canvas");cv.width=128;cv.height=150;const g=cv.getContext("2d");g.lineWidth=5;g.strokeStyle="#1b2838";
   g.fillStyle=t==="coin"?"#f0b440":t==="tourist"?"#2a9d8f":"#fbf8f1";g.beginPath();g.arc(64,60,52,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(52,108);g.lineTo(64,140);g.lineTo(76,108);g.fill();g.stroke();
   g.save();g.translate(28,24);g.scale(3,3);g.lineWidth=1.8;g.strokeStyle=t==="paper"?"#1b2838":"#fff";g.stroke(new Path2D(ICONP[t==="coin"?"coin":t==="tourist"?"person":"paper"]));g.restore();return cv}
@@ -2931,7 +2935,7 @@ function afterMove(moved){
   if(EV.length){keys.clear();joyV=[0,0];renderHeader();save();flushEvents()}
 }
 function pickItem(it){
-  S.picked.push(it.key);if(S.picked.length>60)S.picked=S.picked.slice(-60);it.done=true;keys.clear();joyV=[0,0];
+  if(it.key.includes(":once:")){if(!S.bonus)S.bonus=[];S.bonus.push(it.key)}else{S.picked.push(it.key);if(S.picked.length>60)S.picked=S.picked.slice(-60)}it.done=true;keys.clear();joyV=[0,0];
   if(it.t==="coin"){S.money+=it.amt;toast(`Du hittade ${fmt(it.amt)} kr på marken!`);render();return}
   if(it.t==="paper"){const open=S.missions.filter(id=>!S.tips.includes(id));if(open.length){const id=open[Math.floor(Math.random()*open.length)];S.tips.push(id);
       modal(`<h2>En kvarglömd tidning</h2><div class="sub">En artikel handlar om en av platserna klubben vill ha bilder på. Nu vet du att den ligger i <b>${esc(BY[id].c)}</b>.</div><div class="fact">${esc(BY[id].clue)}</div><button class="close" type="button">Stäng</button>`,{center:true})}
@@ -4409,7 +4413,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 42 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 43 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)}}
