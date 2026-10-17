@@ -3069,7 +3069,7 @@ function openJob(k){
   if(!jobOpen()){modal(`<h2>${place}</h2><div class="sub">Stängt just nu. Klockan är ${clock()}. Här tar de in folk mellan 06:00 och 17:00.</div><button class="close" type="button">Stäng</button>`);return}
   const m=modal(`<h2>${place}</h2><div class="sub">De söker en ${JOBS[k].n.toLowerCase()} för ett pass på sex timmar. ${catDot(k)} Chefen testar dig med fyra frågor om yrket, gärna med koppling till ${esc(c.n)}. Lönen beror på hur många du klarar, och minst tre rätt räknas som klarat jobb.${cert?" Du har certifikat i yrket och får högre lön.":" Alla rätt ger ett yrkescertifikat."}</div>${jobTally(c)}
     <div class="result">${fmt(pay)} kr</div><button class="btn primary" type="button" id="take">Ta jobbet · 6 tim</button><button class="close" type="button">Inte nu</button>`);
-  m.querySelector("#take").onclick=()=>doJob(k);
+  m.querySelector("#take").onclick=()=>jobIntro(k);
 }
 function openInfo(){
   const c=here(),m=cityMap(c),me=meXY(),f=foundList(c),taxis=taxiRows(c);
@@ -3793,6 +3793,93 @@ localQs=function(c,n,tags,genTypes){const cats=tags?[...new Set(tags.map(t=>CQ_C
   const city=shuffle(cityQs(c).filter(q=>!seen(q.slice(1)))).slice(0,1).map(q=>q.slice(1));markSeen(city);
   return shuffle([...city,...placeQs(c,cats,n-city.length,genTypes||["walk","tour","open"],city)])};
 
+/* ================= What each trade is: shown before the shift starts ================= */
+const JOB_DESC={
+ guide:"En reseguide visar turister runt i staden, berättar om sevärdheterna och hjälper dem att hitta rätt. Man måste kunna mycket om platsen och tycka om att prata med människor.",
+ pilot:"En pilot flyger passagerarflyg och ansvarar för säkerheten ombord. Innan varje flygning kontrollerar piloten väder, bränsle och flygplanet.",
+ meteo:"En meteorolog studerar luft, vind och moln för att förutsäga vädret. Prognoserna behövs av allt från flygbolag till bönder.",
+ museum:"En museivakt skyddar föremålen på museet och hjälper besökarna. Vakten ser till att ingen rör konsten och kan ofta mycket om utställningarna.",
+ journo:"En journalist tar reda på vad som händer, intervjuar människor och skriver nyheter. Det viktigaste är att kontrollera att allt stämmer.",
+ art:"En kulturguide visar besökare konst och byggnader och förklarar vem som gjorde dem och varför de är viktiga.",
+ libr:"En bibliotekarie hjälper människor att hitta böcker och information och håller ordning på bibliotekets samlingar.",
+ nurse:"En undersköterska tar hand om patienter, hjälper dem med vardagen och mäter puls och blodtryck. Ett yrke där omtanke är lika viktigt som kunskap.",
+ farm:"En lantbrukare odlar grödor och sköter djur. Arbetet följer årstiderna, från sådd till skörd.",
+ carp:"En snickare bygger och reparerar saker i trä, från möbler till hela hus. Noggranna mått är A och O.",
+ cinema:"En biomaskinist sköter projektorn och ljudet på biografen så att filmen visas perfekt för publiken.",
+ stage:"En scentekniker bygger kulisser och sköter ljus och ljud på teatern så att föreställningen fungerar.",
+ cook:"En kock lagar mat i ett restaurangkök. Det kräver kunskap om råvaror, hygien och att kunna jobba snabbt när det är fullt.",
+ coach:"En idrottsinstruktör leder träning och lär ut rätt teknik. Säkerhet och uppvärmning är alltid första steget.",
+ marin:"En marinbiolog forskar om livet i havet, från plankton till valar, och arbetar för att skydda haven.",
+ volc:"En vulkanolog övervakar vulkaner och jordskalv för att kunna varna människor i tid.",
+ safari:"En viltvårdare skyddar djuren i en nationalpark mot tjuvjakt och håller koll på hur djuren mår.",
+ arch:"En arkeolog gräver försiktigt fram spår från människor som levde för länge sedan och tolkar vad fynden berättar.",
+ dance:"En dansinstruktör lär ut steg och rytm och får alla att röra sig i takt med musiken.",
+ skarg:"Skärgårdsskepparen kör de vita passagerarbåtarna mellan tusentals öar. Hon måste kunna farlederna, sjömärkena och sjövägsreglerna utantill.",
+ cabbie:"Londons taxichaufförer kör de klassiska svarta taxibilarna. För att få köra måste de klara det berömda provet The Knowledge och kunna alla gator utantill.",
+ patiss:"En konditor i Paris bakar bakelser, tårtor och kakor med fransk precision. Smör, socker och tålamod är de viktigaste ingredienserna.",
+ fresco:"En freskrestauratör räddar gamla väggmålningar i kyrkor och palats. Arbetet sker med små penslar och stor försiktighet.",
+ futbol:"En fotbollstränare leder träningar, väljer lag och taktik. I Barcelona är det korta passningsspelet en del av stadens själ.",
+ dj:"En techno-DJ blandar elektronisk musik i nattklubbar. Det gäller att få två låtar att gå i exakt samma takt.",
+ olive:"En olivodlare sköter olivlundar som kan vara hundratals år gamla och pressar olivolja av skörden.",
+ gondol:"Gondoljären styr Venedigs svarta gondoler med en enda åra genom smala kanaler. Yrket har gått i arv i generationer.",
+ carpet:"En mattknytare knyter mattor för hand, knut för knut, med ull i färger från växter. En stor matta kan ta flera år.",
+ glacier:"En glaciärguide leder vandringar på Islands glaciärer. Guiden kan isen, sprickorna och säkerhetsutrustningen.",
+ bway:"En Broadwayskådespelare sjunger, dansar och spelar teater åtta föreställningar i veckan i New Yorks musikalteatrar.",
+ cable:"En kabelspårvagnsförare kör San Franciscos kända spårvagnar som dras av en kabel under gatan uppför de branta backarna.",
+ stunt:"En stuntman gör de farliga scenerna i filmer i stället för skådespelarna. Allt planeras noga för att ingen ska skadas.",
+ capitol:"En guide på Kapitolium visar besökare var USA:s kongress stiftar lagar och berättar om landets politiska historia.",
+ hockey:"En ishockeytränare lär ut skridskoåkning, passningar och taktik. I Toronto är hockey nästan en religion.",
+ whale:"En valsafariguide tar ut turister på båt för att se valar och berättar om djurens liv utan att störa dem.",
+ mariachi:"En mariachimusiker spelar trumpet, fiol eller gitarr i traditionell mexikansk dräkt på fester och torg.",
+ cigar:"En cigarrullare rullar cigarrer för hand av torkade tobaksblad. Kubanska cigarrer är världsberömda, men tobak är skadligt för hälsan.",
+ archi:"En skyskrapearkitekt ritar höga hus som ska klara vind, tyngd och människors behov. Chicago är skyskrapans födelsestad.",
+ jazz:"En jazzmusiker spelar och improviserar musik. New Orleans räknas som platsen där jazzen föddes.",
+ dabba:"Dabbawalas i Mumbai levererar hundratusentals hemlagade lunchlådor varje dag med cykel och tåg, nästan utan att något hamnar fel.",
+ inlay:"En marmorinläggare lägger in små bitar av ädelstenar i vit marmor, samma teknik som pryder Taj Mahal.",
+ muaythai:"En muay thai-tränare lär ut Thailands nationalsport, där man använder händer, armbågar, knän och fötter.",
+ camel:"En kamelskötare tar hand om kameler, matar dem och tränar dem för kapplöpning eller ridturer i öknen.",
+ callig:"En kalligraf skriver kinesiska tecken med pensel och bläck så vackert att texten blir konst.",
+ ferry:"Färjekaptenen kör Stjärnfärjan över Victoria Harbour och navigerar mellan fartyg i en av världens mest trafikerade hamnar.",
+ sushi:"En sushikock, itamae, tränar i många år för att lära sig att koka ris och skära fisk perfekt.",
+ tea:"En temästare leder den japanska teceremonin, där varje rörelse är lugn, noggrann och full av respekt för gästerna.",
+ kpop:"En K-popkoreograf hittar på de exakta, synkroniserade danserna som K-popgrupper gör på scen.",
+ hawker:"En hawkerkock lagar billig och god gatumat i Singapores matmarknader, ofta efter familjens gamla recept.",
+ egypt:"En egyptolog forskar om det forntida Egypten: faraoner, pyramider, mumier och hieroglyfer.",
+ runcoach:"En löpcoach tränar långdistanslöpare. I Kenyas höglandsområden tränar några av världens snabbaste löpare.",
+ wine:"En vinodlare sköter vingårdar och gör vin av druvorna. Kapregionen har odlat vin i över 300 år.",
+ zellige:"En zelligehantverkare hugger små kakelbitar för hand och lägger dem i invecklade geometriska mönster.",
+ spice:"En kryddodlare odlar kryddnejlika, kanel, vanilj och muskot på kryddön Zanzibar.",
+ cocoa:"En kakaobonde odlar kakaoträd, skördar frukterna och jäser och torkar bönorna som blir choklad.",
+ coffee:"En kaffebonde odlar kaffe i bergen där kaffet en gång upptäcktes, plockar de röda bären och torkar bönorna.",
+ pirogue:"En pirogfiskare fiskar från långa, färgglada träbåtar utanför Senegals kust, ofta tidigt på morgonen.",
+ rafting:"En forsränningsguide styr gummibåtar genom vilda forsar och ser till att alla har flytväst, hjälm och koll på säkerheten.",
+ lemur:"En lemurforskare studerar Madagaskars lemurer, som inte finns någon annanstans, och arbetar för att skydda deras skogar.",
+ samba:"En sambadansare tränar hela året med sin sambaskola inför karnevalen i Rio.",
+ inca:"En inkaledsguide leder vandrare på den flera dagar långa leden genom Anderna upp till Machu Picchu.",
+ tango:"En tangodansare dansar den passionerade pardansen som föddes i Buenos Aires hamnkvarter.",
+ astro:"En astronom studerar stjärnor och galaxer. Chiles klara ökennätter är bland de bästa i världen för teleskop.",
+ ceviche:"En cevichekock lagar Perus nationalrätt av färsk rå fisk som marineras i limejuice.",
+ fort:"En fästningsguide visar besökare runt i den gamla spanska fästningen och berättar om pirater och försvar.",
+ galap:"En Galápagosguide leder besökare bland öarnas unika djur och ser till att ingen stör naturen.",
+ river:"En flodbåtskapten kör passagerare och varor på Amazonfloden, där floden är både väg och livsnerv.",
+ ropeway:"En linbaneförare övervakar La Paz linbanor, som fungerar som stadens tunnelbana i luften.",
+ antarc:"En Antarktisguide följer med expeditionsfartyg söderut och ser till att besökarna skyddar den känsliga isvärlden.",
+ lifeguard:"En livräddare vaktar Sydneys stränder, varnar för farliga strömmar och räddar badare i nöd.",
+ barista:"En baristamästare gör perfekt espresso och latte art. Melbourne är känt för sin kaffekultur.",
+ sailor:"En seglare tävlar och seglar i Aucklands vindar och vet hur seglen ska trimmas i varje läge.",
+ diver:"En dykinstruktör lär ut dykning och visar besökare Stora barriärrevet utan att skada korallerna.",
+ flydoc:"Flygande läkare flyger ut till avlägsna gårdar och samhällen i Australiens inland där närmaste sjukhus ligger långt bort.",
+ mine:"En gruvgeolog letar efter malm och bestämmer var gruvan ska bryta. Västra Australien har några av världens största järnmalmsgruvor.",
+ vfx:"En specialeffektmakare skapar monster, landskap och explosioner i datorn för filmer.",
+ bungy:"En bungyjumpinstruktör väger hopparen, kontrollerar linor och selar och ser till att varje hopp blir säkert.",
+ surf:"En surflärare lär nybörjare att läsa vågorna, paddla och resa sig på brädan.",
+ pearl:"En pärlodlare odlar svarta Tahitipärlor i musslor i lagunerna och väntar i åratal på varje pärla."};
+function jobIntro(k){const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=r10(t.pay*(cert?1.5:1)),j=JOBS[k];
+  const m=modal(`<div class="eyebrow" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Om yrket</div><h2 style="margin-top:4px">${esc(j.n)}</h2>${catDot(k)}
+    <div class="fact" style="font-size:15.5px">${esc(JOB_DESC[k]||"Ett yrke som behövs i "+c.n+". Visa vad du kan!")}</div>
+    <div class="sub" style="margin-top:12px">Passet tar 6 timmar. Du får fyra frågor om yrket, och lönen beror på hur många du svarar rätt på.</div>
+    <div class="result">${fmt(pay)} kr</div><button class="btn primary" type="button" id="start">Börja passet</button><button class="close" type="button">Inte nu</button>`,{center:true});
+  m.querySelector("#start").onclick=()=>doJob(k)}
 /* ================= Quiz engine ================= */
 function runQuiz({title,sub,qs,done}){
   const box=modal("",{center:true,dismiss:false});let i=0,right=0;const res=[];
