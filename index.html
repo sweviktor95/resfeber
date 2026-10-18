@@ -2639,14 +2639,14 @@ function streetNames(c){const m=cityMap(c);if(m.snames)return m.snames;const out
   else{const R=rng(hash(c.id+"streets")),list=STREETS[STREET_LANG[c.id]]||STREETS.en,sh=list.slice().sort(()=>R()-.5),cols={},rows={};let k=0;
     const name=(tab,key)=>tab[key]||(tab[key]=sh[(k++)%sh.length]);
     for(const [u,v,b] of m.E){const [,i1,j1]=u.match(/[nd](\d+)_(\d+)/).map(Number),[,i2,j2]=v.match(/[nd](\d+)_(\d+)/).map(Number);
-      const n=j1===j2?name(rows,"r"+j1):name(cols,"c"+i1);out.push({u,v,b,n,main:(j1===j2&&j1===2)||(i1===i2&&i1===2)})}}
+      const n=j1===j2?name(rows,"r"+j1):name(cols,"c"+i1);out.push({u,v,b,n,main:j1===j2?j1===3:i1===3})}}
   return m.snames=out}
 /* city blocks printed on the paper: everything that is not street, water, park or a square */
 function paperBlocks(c){const m=cityMap(c);if(m.pblocks)return m.pblocks;const wd=buildWorld(c),cs=c.id==="sto"?24:30,R=rng(hash(c.id+"paper")),out=[];
   const segs=wd.segs,foot=m.pois.map(p=>{const d=m.nodes[p.node],w=(p._w||30)/2+5;return [d[0]-w,d[1]-p._back-(p._w||30)*.75,d[0]+w,d[1]+4]}),inPark=(x,y)=>m.parks.some(q=>pip([x,y],q));
   for(let x=0;x<m.w;x+=cs)for(let y=0;y<m.h;y+=cs){const x0=x+3,y0=y+3,x1=x+cs-3,y1=y+cs-3,cx=x+cs/2,cy=y+cs/2;
-    if(![[x0,y0],[x1,y0],[x0,y1],[x1,y1]].every(q=>wd.isLand(q[0],q[1])))continue;if(inPark(cx,cy))continue;
-    if(segs.some(q=>segDist([cx,cy],q[0],q[1])<12+cs*.5))continue;if(foot.some(f=>x1>f[0]&&x0<f[2]&&y1>f[1]&&y0<f[3]))continue;
+    const cr=[[x0-4,y0-4],[x1+4,y0-4],[x0-4,y1+4],[x1+4,y1+4]];if(!cr.every(q=>wd.isLand(q[0],q[1])))continue;if(inPark(cx,cy)||cr.some(q=>inPark(q[0],q[1])))continue;
+    if(segs.some(q=>segDist([cx,cy],q[0],q[1])<15+cs*.62))continue;if(foot.some(f=>x1>f[0]&&x0<f[2]&&y1>f[1]&&y0<f[3]))continue;
     const r=R();out.push([x0,y0,x1,y1,r<.16?"#e5452b":r<.2?"#f7c948":"#f39a2b"])}
   return m.pblocks=out}
 function drawPaperMap(g,c,m,wd,now,vb){
@@ -2674,26 +2674,30 @@ function drawPaperMap(g,c,m,wd,now,vb){
   const names=streetNames(c),line=(a,b,w,col)=>{g.strokeStyle=col;g.lineWidth=w;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()};
   g.strokeStyle=INK;g.lineWidth=7;for(const pts of m.deco){g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
   g.strokeStyle=STREET;g.lineWidth=5;for(const pts of m.deco){g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
-  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],s.main?27:23,INK);
-  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],s.main?23:19,s.main?MAIN:STREET);
+  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],23,INK);
+  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],19,STREET);g.lineCap="butt";for(const s of names)if(s.main)line(m.nodes[s.u],m.nodes[s.v],19,MAIN);g.lineCap="round";
+  {const deg={};for(const s of names)if(s.main){deg[s.u]=(deg[s.u]||0)+1;deg[s.v]=(deg[s.v]||0)+1}g.fillStyle=MAIN;for(const k in deg)if(deg[k]>1){const q=m.nodes[k];g.beginPath();g.arc(q[0],q[1],9.5,0,7);g.fill()}}
   // street names printed along the streets
   g.fillStyle=INK;g.textAlign="center";g.textBaseline="middle";
-  for(const s of names){if(!s.n)continue;const a=m.nodes[s.u],b=m.nodes[s.v],L=dist2(a,b);if(!inV(Math.min(a[0],b[0])-40,Math.min(a[1],b[1])-40,Math.max(a[0],b[0])+40,Math.max(a[1],b[1])+40))continue;
+  const used=new Set(m.pois.map(p=>p.node)),runs=[];
+  for(const s of names){if(!s.n)continue;if(s.u[0]==="d")continue;if(s.v[0]!=="d"){runs.push(s);continue}if(used.has(s.v))continue;const o=names.find(t=>t.u===s.v);if(o)runs.push({...s,v:o.v})}
+  const cnt={};runs.forEach((s,i)=>s.i=i);
+  for(const s of runs){if((cnt[s.n]=(cnt[s.n]||0)+1)%2===0||cnt[s.n]>3)continue;const a=m.nodes[s.u],b=m.nodes[s.v],L=dist2(a,b);if(!inV(Math.min(a[0],b[0])-40,Math.min(a[1],b[1])-40,Math.max(a[0],b[0])+40,Math.max(a[1],b[1])+40))continue;
     let ang=Math.atan2(b[1]-a[1],b[0]-a[0]);if(Math.cos(ang)<-.01||(Math.abs(Math.cos(ang))<.01&&Math.sin(ang)<0))ang+=Math.PI;
-    const fs=s.main?7:6;g.font=`800 ${fs}px Figtree, sans-serif`;const txt=s.n.toUpperCase(),tw=g.measureText(txt).width;if(tw>L-24)continue;
-    const reps=Math.max(1,Math.floor(L/(tw+140)));for(let k=0;k<reps;k++){const t=(k+.5)/reps;g.save();g.translate(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);g.rotate(ang);g.fillText(txt,0,.5);g.restore()}}
+    const fs=s.main?7:6;g.font=`800 ${fs}px Figtree, sans-serif`;const txt=s.n.toUpperCase(),tw=g.measureText(txt).width;if(tw>L-44)continue;
+    const reps=1;for(let k=0;k<reps;k++){const t=(k+.5)/reps;g.save();g.translate(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);g.rotate(ang);g.fillText(txt,0,.5);g.restore()}}
   g.textBaseline="alphabetic";
-  // compass rose
-  {const cx=70,cy=70,R=46;g.save();g.translate(cx,cy);g.fillStyle="rgba(255,250,240,.85)";g.beginPath();g.arc(0,0,R*.62,0,7);g.fill();g.strokeStyle=INK;g.lineWidth=1.4;g.stroke();
-    for(let k=0;k<8;k++){const a=k*Math.PI/4,l=k%2?R*.55:R,w=k%2?5:8;g.save();g.rotate(a);g.beginPath();g.moveTo(0,-l);g.lineTo(w,0);g.lineTo(0,0);g.closePath();g.fillStyle=k===0?"#e5452b":INK;g.fill();
-      g.beginPath();g.moveTo(0,-l);g.lineTo(-w,0);g.lineTo(0,0);g.closePath();g.fillStyle=k===0?"#f39a2b":"#fffaf0";g.fill();g.stroke();g.restore()}
-    g.fillStyle=INK;g.font="900 16px Unbounded, sans-serif";g.textAlign="center";g.fillText("N",0,-R-6);g.restore()}
   // the folds of the paper
   for(const [x,isV] of [[m.w/3,1],[m.w*2/3,1],[m.h/2,0]]){const gr=isV?g.createLinearGradient(x-14,0,x+14,0):g.createLinearGradient(0,x-14,0,x+14);
     gr.addColorStop(0,"rgba(0,0,0,0)");gr.addColorStop(.45,"rgba(0,0,0,.12)");gr.addColorStop(.5,"rgba(255,255,255,.45)");gr.addColorStop(.58,"rgba(0,0,0,.05)");gr.addColorStop(1,"rgba(0,0,0,0)");
     g.fillStyle=gr;if(isV)g.fillRect(x-14,0,28,m.h);else g.fillRect(0,x-14,m.w,28)}
   g.restore();
   g.strokeStyle=INK;g.lineWidth=3;g.strokeRect(0,0,m.w,m.h);
+  // compass rose
+  {const cx=m.w-46,cy=m.h+62,R=34;g.save();g.translate(cx,cy);g.fillStyle="rgba(255,250,240,.85)";g.beginPath();g.arc(0,0,R*.62,0,7);g.fill();g.strokeStyle=INK;g.lineWidth=1.4;g.stroke();
+    for(let k=0;k<8;k++){const a=k*Math.PI/4,l=k%2?R*.55:R,w=k%2?5:8;g.save();g.rotate(a);g.beginPath();g.moveTo(0,-l);g.lineTo(w,0);g.lineTo(0,0);g.closePath();g.fillStyle=k===0?"#e5452b":INK;g.fill();
+      g.beginPath();g.moveTo(0,-l);g.lineTo(-w,0);g.lineTo(0,0);g.closePath();g.fillStyle=k===0?"#f39a2b":"#fffaf0";g.fill();g.stroke();g.restore()}
+    g.fillStyle=INK;g.font="900 16px Unbounded, sans-serif";g.textAlign="center";g.fillText("N",0,-R-6);g.restore()}
 }
 
 /* ---- the city as data: walkable area, blocks to draw, trees ---- */
@@ -4385,7 +4389,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 46 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 47 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
