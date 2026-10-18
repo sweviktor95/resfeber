@@ -1331,6 +1331,9 @@ function genMap(c){
   for(let i=0;i<3;i++)pois.push({type:"sight",i,node:near((L.s&&L.s[i])||[R(),R()])});
   pois.push({type:"lux",n:"Hotell Panorama",node:pickRand()},{type:"hostel",n:budgetName(c),node:pickRand()},{type:"club",n:"Klubbens kontor",node:pickRand()},
     {type:"cafe",n:"Kaféet",node:pickRand()},{type:"pub",n:"Puben",node:pickRand()},{type:"kiosk",n:"Butiken",node:pickRand()},...(FACTS[c.id]||[]).map(([n,t])=>({type:"info",n,t,node:pickRand()})),...cityJobs(c).map(job=>({type:"job",job,node:pickRand()})));
+  // the ferry terminal sits right at the water's edge, with a short street down to it
+  {const bp=pois.find(p=>p.type==="travel"&&p.mode==="boat");if(bp&&side){const d=nodes[bp.node],dir={S:[0,1],N:[0,-1],E:[1,0],W:[-1,0]}[side];let t=0;
+    while(t<400&&!isWater(d[0]+dir[0]*t,d[1]+dir[1]*t))t+=2;if(t>20&&t<400){const k="p"+bp.node.slice(1);nodes[k]=[d[0]+dir[0]*(t-12),d[1]+dir[1]*(t-12)];E.push([bp.node,k]);bp.node=k}}}
   const start=(pois.find(p=>p.type==="travel"&&p.mode==="train")||pois[0]).node;
   return {isWater:(x,y)=>isWater(x,y),w:W,h:H,bg:"land",land:[],parks,deco:[],blocks:[],water,labels:[],nodes,E,pois,start};
 }
@@ -2848,7 +2851,7 @@ function streetNames(c){const m=cityMap(c);if(m.snames)return m.snames;const out
   if(c.id==="sto"){for(const [u,v,b] of m.E){const n=STO_STREETS[u+"|"+v]||STO_STREETS[v+"|"+u]||"";out.push({u,v,b,n,main:STO_MAIN.has(n)})}}
   else{const R=rng(hash(c.id+"streets")),list=STREETS[STREET_LANG[c.id]]||STREETS.en,sh=list.slice().sort(()=>R()-.5),cols={},rows={};let k=0;
     const name=(tab,key)=>tab[key]||(tab[key]=sh[(k++)%sh.length]);
-    for(const [u,v,b] of m.E){const [,i1,j1]=u.match(/[nd](\d+)_(\d+)/).map(Number),[,i2,j2]=v.match(/[nd](\d+)_(\d+)/).map(Number);
+    for(const [u,v,b] of m.E){const [,i1,j1]=u.match(/[ndp](\d+)_(\d+)/).map(Number),[,i2,j2]=v.match(/[ndp](\d+)_(\d+)/).map(Number);
       const n=j1===j2?name(rows,"r"+j1):name(cols,"c"+i1);out.push({u,v,b,n,main:j1===j2?j1===3:i1===3})}}
   return m.snames=out}
 /* city blocks printed on the paper: everything that is not street, water, park or a square */
@@ -4652,7 +4655,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 61 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 62 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
