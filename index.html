@@ -1226,6 +1226,7 @@ function drawCities(){
   for(const c of CITIES){if(mapCont&&c.t!==mapCont&&c.id!==S.cur)continue;const [x0,y]=proj([c.lon,c.lat]),x=x0+wrapX(c),isHere=c.id===S.cur,vis=S.visited.includes(c.id),lock=TI[c.t]>=n;
     if(isHere)el("circle",{cx:x,cy:y,r:6*px,class:"pulse","stroke-width":2*px},cg);
     el("circle",{cx:x,cy:y,r:(isHere?6:lock?3:4.5)*px,"stroke-width":1.6*px,class:"city"+(isHere?" here":lock?" locked":vis?" visited":"")},cg);
+    if((S.cityDone||[]).includes(c.id)){const k=px*1.5;el("circle",{cx:x-7*k,cy:y-7*k,r:5.5*k,fill:"#3d9a4f",stroke:"#fff","stroke-width":1.4*k},cg);el("path",{d:`M${x-9.5*k},${y-7*k}l${1.8*k},${2*k}l${3.4*k},${-3.8*k}`,fill:"none",stroke:"#fff","stroke-width":1.5*k,"stroke-linecap":"round","stroke-linejoin":"round"},cg)}
     if(true){const t=el("text",{x:x+8*px,y:y+4*px,class:"lbl","font-size":12*px,"stroke-width":3*px},lg);t.textContent=c.n}}
 }
 function renderMapHint(){if(!S.hub){$("maphint").textContent="Här ser du världen. För att resa går du till en flygplats, tågstation eller hamn.";return}
@@ -2999,6 +3000,12 @@ function renderPlaces(){
 function openFact(p){const c=here();markDoneB(c,"info:"+p.n);modal(`<div class="eyebrow" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Visste du?</div><h2 style="margin-top:4px">${esc(p.n)}</h2><div class="fact" style="font-size:15.5px">${esc(p.t)}</div><button class="close" type="button">Gå vidare</button>`,{center:true});render()}
 function poiDone(c,p){const db=(S.doneB||{})[c.id]||[];if(p.type==="job")return jobsDone(c).includes(p.job);if(p.type==="cafe"||p.type==="pub")return db.includes(p.type);if(p.type==="info")return db.includes("info:"+p.n);
   if(p.type==="sight")return S.photos.some(ph=>ph.c===c.id&&ph.s===p.i)&&!(S.missions.includes(c.id)&&p.i===c.k);return false}
+const DONE_T=["job","cafe","pub","sight","info"];
+function cityComplete(c){const ps=cityMap(c).pois.filter(p=>DONE_T.includes(p.type));return ps.length>0&&ps.every(p=>poiDone(c,p))}
+/* the whole city is done: say so once, and mark it on the world map */
+function checkCityDone(){if(!S||modalOpen()||busy)return;const c=here();S.cityDone=S.cityDone||[];if(S.cityDone.includes(c.id)||!cityComplete(c))return;
+  S.cityDone.push(c.id);gainXP(100);save();AMB.shutter&&AMB.shutter();
+  modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">✅</div><h2 style="margin-top:8px">${esc(c.n)} är klar!</h2><div class="sub">Du har gjort alla jobb, fikat, varit på puben, fotat sevärdheterna och läst all fakta i ${esc(c.n)}. Staden får en grön bock på världskartan.</div><div class="result">+100 XP</div></div><button class="btn primary" type="button" id="ok">Härligt!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();render()}}
 function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
   if(busy)return;
@@ -3038,7 +3045,7 @@ function modal(html,{center=false,dismiss=true}={}){
   const L=$("layer");L.innerHTML=`<div class="scrim${center?" center":""}"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
   const sc=L.firstElementChild;if(dismiss)sc.addEventListener("click",e=>{if(e.target===sc)closeModal()});
   const c=sc.querySelector(".close");if(c)c.onclick=closeModal;return sc.firstElementChild}
-function closeModal(){$("layer").innerHTML="";W3.cool=performance.now()+3000;setTimeout(flushEvents,120)}
+function closeModal(){$("layer").innerHTML="";W3.cool=performance.now()+3000;setTimeout(flushEvents,120);setTimeout(checkCityDone,500)}
 const modalOpen=()=>!!$("layer").firstElementChild;
 
 let lastMoney=null,lastEnergy=null;
@@ -4427,7 +4434,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 53 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 54 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
