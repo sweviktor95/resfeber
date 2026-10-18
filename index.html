@@ -1072,7 +1072,16 @@ const jobOpen = () => {const h=hourOf();return h>=6&&h<17};
 const cafeOpen=()=>{const h=hourOf();return h>=7&&h<19},pubOpen=()=>{const h=hourOf();return h>=17||h<2};
 const cafeMode = () => {const h=hourOf();return h>=7&&h<19?"cafe":(h>=19||h<2)?"pub":"closed"};
 const DRY={cai:1,dxb:1};
-function rainy(c=here(),t=S.t){if(DRY[c.id])return false;const h=hourOf(c,t),half=h<13?0:1;return rng(hash(c.id+":"+dayOf(c,t)+":"+half))()<.16}
+/* each city's climate: chance of rain per half day, plus its own special weather (fog, snow or sandstorm) */
+const CLIM={sto:[.18],rey:[.3,"snow",.12],lon:[.3,"fog",.06],par:[.2],rom:[.12],bln:[.2],bcn:[.1],ath:[.07],ist:[.15],ven:[.15,"fog",.06],
+ nyc:[.2],mex:[.2],rio:[.2],cus:[.2],cai:[0,"sand",.1],nbo:[.2],cpt:[.15],mum:[.35],bkk:[.3],dxb:[0,"sand",.12],pek:[.1,"sand",.05],tyo:[.25],syd:[.2],
+ van:[.35,"fog",.08],sfo:[.1,"fog",.3],bue:[.18],agr:[.12],sin:[.4],hkg:[.3],lax:[.05],was:[.2],yyz:[.2,"snow",.06],hav:[.2],scl:[.05],rak:[.05,"sand",.06],
+ znz:[.25],sel:[.2],kyo:[.25],mel:[.2],akl:[.3],chi:[.2,"snow",.06],msy:[.3],lim:[0,"fog",.35],ctg:[.2],uio:[.3],mao:[.45],lpb:[.15],ush:[.3,"snow",.15],
+ acc:[.2],add:[.25],dkr:[.05,"sand",.08],lvi:[.1],tnr:[.25],cns:[.35],asp:[.03,"sand",.08],per:[.12],wlg:[.3],zqn:[.2,"snow",.06],hnl:[.15],ppt:[.25]};
+const WX_NAME={rain:"regn",fog:"dimma",snow:"snöfall",sand:"sandstorm"};
+function weather(c=here(),t=S.t){const [rp,k,kp]=CLIM[c.id]||[.16],h=hourOf(c,t),half=h<13?0:1,r=rng(hash(c.id+":"+dayOf(c,t)+":"+half))();return r<rp?"rain":k&&r<rp+kp?k:"clear"}
+function rainy(c=here(),t=S.t){return weather(c,t)==="rain"}
+function badWeather(c=here(),t=S.t){return weather(c,t)!=="clear"}
 function pass(h){S.t+=h;spendEnergy(h*2.5*(S&&S.shoes?.75:1))}
 const durTxt = h => h<1?Math.round(h*60)+" min":(Math.round(h*2)/2).toString().replace(".",",")+" tim";
 
@@ -2148,7 +2157,7 @@ function poiStatus(p){const c=here(),t=tierOf(c),cm=cafeMode();
     case "pub":return pubOpen()?{s:"Pubquiz om pengar"}:{s:"Stängt · öppet 17–02",cl:1};
     case "info":return {s:"Visste du?"};
     case "kiosk":return {s:"Stadskarta, molnlagring, skor och dryck"};
-    case "sight":{const has=S.photos.some(x=>x.c===c.id&&x.s===p.i);return isDark()?{s:"För mörkt att fotografera",cl:1}:rainy()?{s:"Regn · dåligt fotoväder",cl:1}:{s:has?"Fotograferad · finns i albumet":"Sevärdhet att fotografera"}}
+    case "sight":{const has=S.photos.some(x=>x.c===c.id&&x.s===p.i);return isDark()?{s:"För mörkt att fotografera",cl:1}:badWeather()?{s:WX_NAME[weather()][0].toUpperCase()+WX_NAME[weather()].slice(1)+" · dåligt fotoväder",cl:1}:{s:has?"Fotograferad · finns i albumet":"Sevärdhet att fotografera"}}
     default:return {s:"Läs mer"};
   }}
 const wsvg=$("walk"),wv={x:0,y:0,w:1200,h:800};let wrect={width:0,height:0,left:0,top:0},wMap=null,wCity=null,walking=false,wAv=null;
@@ -2795,7 +2804,7 @@ function dayItems(c){const m=cityMap(c),wd=buildWorld(c),out=[];if(!S.picked)S.p
 function itemCanvas(t){const cv=document.createElement("canvas");cv.width=128;cv.height=150;const g=cv.getContext("2d");g.lineWidth=5;g.strokeStyle="#1b2838";
   g.fillStyle=t==="coin"?"#f0b440":t==="tourist"?"#2a9d8f":"#fbf8f1";g.beginPath();g.arc(64,60,52,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(52,108);g.lineTo(64,140);g.lineTo(76,108);g.fill();g.stroke();
   g.save();g.translate(28,24);g.scale(3,3);g.lineWidth=1.8;g.strokeStyle=t==="paper"?"#1b2838":"#fff";g.stroke(new Path2D(ICONP[t==="coin"?"coin":t==="tourist"?"person":"paper"]));g.restore();return cv}
-const SKYTINT=()=>{const sk=skyAt(hourOf()),L=Math.max(0,sk.light);return {L,rain:rainy()}};
+const SKYTINT=()=>{const sk=skyAt(hourOf()),L=Math.max(0,sk.light);return {L,rain:rainy(),wx:weather()}};
 
 /* --- the 3D walker: boxes + a sphere head, painter-sorted, flat shaded --- */
 const SC=1.55;
@@ -2873,10 +2882,16 @@ function drawStreet(now){
   // the thief always shows through buildings, so he can't sneak up unseen
   if(W3.thief){const T=W3.thief,pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;g.save();g.globalAlpha=.55;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz);g.restore()}
   // light and weather
-  const {L,rain}=SKYTINT();if(L<.98){g.fillStyle=`rgba(12,22,58,${(1-L)*.5})`;g.fillRect(0,0,Wp,Hp)}
+  const {L,rain,wx}=SKYTINT();if(L<.98){g.fillStyle=`rgba(12,22,58,${(1-L)*.5})`;g.fillRect(0,0,Wp,Hp)}
   if(L<.98&&L>.2){g.fillStyle=`rgba(255,140,60,${(.5-Math.abs(L-.55))*.18})`;g.fillRect(0,0,Wp,Hp)}
   if(rain){g.fillStyle="rgba(70,80,100,.18)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(220,230,245,.5)";g.lineWidth=1;g.beginPath();const t=now/1000;
     for(let i=0;i<90;i++){const x=((i*97+t*60)%(Wp+40))-20,y=((i*53+t*520)%(Hp+40))-20;g.moveTo(x,y);g.lineTo(x-4,y+12)}g.stroke()}
+  if(wx==="fog"){const t=now/9000,gr=g.createLinearGradient(0,0,0,Hp);gr.addColorStop(0,"rgba(232,236,240,.78)");gr.addColorStop(.6,"rgba(232,236,240,.5)");gr.addColorStop(1,"rgba(232,236,240,.62)");g.fillStyle=gr;g.fillRect(0,0,Wp,Hp);
+    g.fillStyle="rgba(255,255,255,.22)";for(let i=0;i<6;i++){const x=((i*173+t*Wp*.6)%(Wp+300))-150,y=Hp*(.15+i*.14);g.beginPath();g.ellipse(x,y,170,38,0,0,7);g.fill()}}
+  if(wx==="snow"){g.fillStyle="rgba(214,224,238,.38)";g.fillRect(0,0,Wp,Hp);g.fillStyle="#fff";g.strokeStyle="rgba(120,140,170,.45)";g.lineWidth=.8;const t=now/1000;
+    for(let i=0;i<170;i++){const x=((i*97+Math.sin(t+i)*14+t*18)%(Wp+20))-10,y=((i*61+t*55*(.6+(i%5)*.15))%(Hp+20))-10;g.beginPath();g.arc(x,y,1.8+(i%4)*.7,0,7);g.fill();g.stroke()}}
+  if(wx==="sand"){g.fillStyle="rgba(206,150,82,.5)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(245,215,165,.7)";g.lineWidth=1.6;g.beginPath();const t=now/1000;
+    for(let i=0;i<70;i++){const x=((i*131+t*420)%(Wp+80))-40,y=((i*47+Math.sin(t*2+i)*6)%(Hp+20));g.moveTo(x,y);g.lineTo(x+26,y+2)}g.stroke()}
   if(W3.guide!=null){const tp=m.pois[W3.guide],d0=tp&&m.nodes[tp.node];const G=W3.guideAt||p;if(!d0||dist2(d0,p)<NEAR_R*1.6||dist2(G,p)>280)W3.guide=null;else{
     const [ax,ay]=proj(G[0],G[1],78),[px0,py0]=proj(G[0],G[1],0),[tx,ty]=proj(d0[0],d0[1],0),ang=Math.atan2(ty-py0,tx-px0),r=9*s,pul=1+.08*Math.sin(now/220);
     g.save();g.translate(ax,ay);g.rotate(ang);g.scale(pul,pul);g.fillStyle="#f39a2b";g.strokeStyle="#fff";g.lineWidth=3;g.lineJoin="round";g.beginPath();g.moveTo(r,0);g.lineTo(-r*.5,-r*.7);g.lineTo(-r*.2,0);g.lineTo(-r*.5,r*.7);g.closePath();g.stroke();g.fill();g.restore();
@@ -3071,7 +3086,7 @@ function paintScene(){if(tab==="city")drawScene($("scene"),here(),hourOf(),rainy
 function renderCity(){
   const c=here(),tier=tierOf(c);
   $("c-name").textContent=c.n;
-  $("c-sub").textContent=`${c.c}${rainy()?" · regn":""}`;
+  $("c-sub").textContent=`${c.c}${badWeather()?" · "+WX_NAME[weather()]:""}`;
   $("c-rank").textContent=rankName()+" · "+S.xp+" XP";
   ensureWalk();renderPlaces();
   $("walkhint").hidden=!!S.walked;
@@ -3157,8 +3172,8 @@ function paintPhoto(cv,c,i,hour){drawScene(cv,c,hour);
 function openSight(i){
   const c=here(),name=c.s[i];
   if(isDark()){modal(`<h2>${esc(name)}</h2><div class="sub">Det är för mörkt för att fotografera. Klockan är ${clock()}. Kom tillbaka när det är ljust, efter 06:30.</div><button class="close" type="button">Stäng</button>`);return}
-  if(rainy()){const m=modal(`<h2>${esc(name)}</h2><div class="sub">Det ösregnar i ${esc(c.n)} och bilderna blir bara grå. Vädret kan slå om till ${hourOf()<13?"eftermiddagen (efter 13:00)":"i morgon"}, så du kan vänta eller göra något annat så länge.</div>${hourOf()<13?`<button class="btn" type="button" id="wait">Vänta till 13:00</button>`:""}<button class="close" type="button">Stäng</button>`);
-    const wb=m.querySelector("#wait");if(wb)wb.onclick=()=>{pass(13-hourOf());closeModal();render();toast(rainy()?"Det regnar fortfarande.":"Uppehåll! Nu går det att fotografera.")};return}
+  if(badWeather()){const wx=weather(),why={rain:`Det ösregnar i ${esc(c.n)} och bilderna blir bara grå.`,fog:`Dimman ligger så tät över ${esc(c.n)} att du knappt ser motivet.`,snow:`Snön yr i ${esc(c.n)} och allt blir vitt i sökaren.`,sand:`En sandstorm drar in över ${esc(c.n)}. Sanden skymmer allt och kan förstöra kameran.`}[wx];const m=modal(`<h2>${esc(name)}</h2><div class="sub">${why} Vädret kan slå om till ${hourOf()<13?"eftermiddagen (efter 13:00)":"i morgon"}, så du kan vänta eller göra något annat så länge.</div>${hourOf()<13?`<button class="btn" type="button" id="wait">Vänta till 13:00</button>`:""}<button class="close" type="button">Stäng</button>`);
+    const wb=m.querySelector("#wait");if(wb)wb.onclick=()=>{pass(13-hourOf());closeModal();render();toast(badWeather()?`Fortfarande ${WX_NAME[weather()]}.`:"Vädret har klarnat! Nu går det att fotografera.")};return}
   const has=S.photos.some(p=>p.c===c.id&&p.s===i);wikiImg(c,i).then(u=>u&&loadImg(u)).catch(()=>{});
   const m=modal(`<h2>${esc(name)}</h2><div class="sub">${has?"Du har redan en bild härifrån i albumet.":"Klubben vill ha bilder på särskilda platser. Är det här rätt motiv för något av dina uppdrag?"}</div><button class="btn primary" type="button" id="shoot">Ta en bild · plats för ${S.film||0} i molnet</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#shoot").onclick=()=>{if(needFilm())return;closeModal();takePhoto(i)};
@@ -4438,7 +4453,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 58 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 59 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
@@ -4447,7 +4462,7 @@ function openGuide(){const sec=(t,items)=>`<div class="sec-h" style="margin-top:
   modal(`<div class="intro"><h2>Guide</h2><div class="sub">Så funkar Resfeber.</div>
   ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Samla erfarenhet (XP) och stig i graderna tills du blir <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Nya världsdelar låses upp en i taget när du får mer XP: Europa, Nordamerika, Asien, Afrika, Sydamerika och Oceanien."])}
   ${sec("Gå runt i staden",["Tryck på kartan, håll fingret mot den eller dra i <b>spaken</b> för att gå.","Hus reser sig ur marken när du kommer nära. Gå in i cirkeln framför ett hus för att gå in.","En <b>grön bock</b> betyder att du är klar med stället."])}
-  ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön, och jobbet är klart efter ett pass, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
+  ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön, och jobbet är klart efter ett pass, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust och vädret är bra. Varje stad har sitt eget klimat: regn, dimma, snö eller sandstorm gör det omöjligt att fota. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
   ${sec("Energi och natt",["Energin sjunker när tiden går. Tar den slut går du långsamt, och svimmar du blir det dyrt.","Sov på hotell eller drick en energidryck från väskan.","På natten (20–06:30) kan en <b>ficktjuv på elsparkcykel</b> dyka upp. Han står still en kort stund och jagar dig sedan. Fly in på ett <b>öppet</b> ställe. Med snabba skor springer du ifrån honom."])}
   ${sec("Saker på gatan",["<b>Mynt</b> ligger på marken varje dag.","Varje stad har en <b>tidning</b> med ett tips och en vilsen <b>turist</b> som behöver hjälp."])}
   ${sec("Resa",["Gå till <b>flygplatsen</b>, <b>tågstationen</b> eller <b>hamnen</b>. Kartan visar världsdelen du är i. Tryck på en stad för att resa dit.","Tågen och båtarna går bara dit spåren och vattnet når."])}
