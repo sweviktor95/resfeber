@@ -4453,7 +4453,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 59 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 60 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
@@ -4469,6 +4469,20 @@ function openGuide(){const sec=(t,items)=>`<div class="sec-h" style="margin-top:
   ${sec("Knapparna",["⚙️ Inställningar och den här guiden · 👜 Väskan med pengar, foton, certifikat och uppdrag · 🔊 Ljud · 🥤 Energidryck · 🗺️ Stadskarta (om du har en)."])}
   <button class="btn primary" type="button" id="g-ok" style="margin-top:16px">Tack, nu kör vi!</button></div>`,{center:true}).querySelector("#g-ok").onclick=closeModal}
 $("setbtn").onclick=openSettings;
+/* ================= Facts only: every fallback that used to make up a sum now picks an unused fact question instead ================= */
+const FACT_CATS=["geo","hist","konst","vet","noje","sport","mat"];let CURJOB=null;
+function factFill(c,taken=[],cats){const fresh=q=>q&&!seen(q)&&!taken.some(t=>t[0]===q[0]);
+  const pref=[...(cats||[]).filter(x=>FACT_CATS.includes(x)),...(CURJOB&&JOB_CAT[CURJOB]?[JOB_CAT[CURJOB]]:[])],order=pref.length?pref:FACT_CATS;
+  for(const lvl of [0,1])for(const cat of order)for(const q of placePool(c,cat)[lvl])if(fresh(q))return q;
+  // nothing left about this place: borrow an unused fact from elsewhere in the world, same subject first
+  const banks=[];for(const cc in LQ)for(const cat of order)banks.push(...(LQ[cc][cat]||[]));for(const r in RQ)for(const cat of order)banks.push(...(RQ[r][cat]||[]));
+  for(const q of shuffle(banks))if(fresh(q))return q;
+  const all=[];for(const cc in LQ)for(const cat of FACT_CATS)all.push(...(LQ[cc][cat]||[]));for(const q of shuffle(all))if(fresh(q))return q;
+  return PICK(all)}
+genFresh=function(c,types,taken){return factFill(c,taken)};
+catGen=function(cat,c,taken){return factFill(c,taken||[],[cat])};
+jobGen=function(c,gens,taken){return factFill(c,taken,jobTopic(CURJOB)[0])};
+{const _jq=jobQs;jobQs=function(k){CURJOB=k;try{return _jq(k)}finally{CURJOB=null}}}
 /* ================= Boot ================= */
 function intro(saved){
   const m=modal(`<div class="intro"><h2>Välkommen till Världsresenärernas klubb</h2>
