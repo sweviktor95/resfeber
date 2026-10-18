@@ -4459,15 +4459,40 @@ function openBooking(id){
   m.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{closeModal();travel(id,o[+b.dataset.i],d)});
 }
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* ================= Routes: boats follow the sea, trains stay on land (short hops over straits are bridges and tunnels) ================= */
+let LANDMASK=null;const RG=2,RW=W/RG,RH=H/RG;
+function landMask(){if(LANDMASK)return LANDMASK;const cv=document.createElement("canvas");cv.width=RW;cv.height=RH;const g=cv.getContext("2d");g.scale(1/RG,1/RG);g.fillStyle="#000";
+  for(const k in GEO)g.fill(new Path2D(GEO[k]));const d=g.getImageData(0,0,RW,RH).data,m=new Uint8Array(RW*RH);for(let i=0;i<RW*RH;i++)m[i]=d[i*4+3]>110?1:0;return LANDMASK=m}
+function seaRoute(a,b,mode){const m=landMask(),N=RW*RH,wrap=x=>((x%RW)+RW)%RW,idx=(x,y)=>y*RW+wrap(x);
+  const ax=Math.round(a[0]/RG),ay=Math.round(a[1]/RG),bx=Math.round(b[0]/RG),by=Math.round(b[1]/RG);
+  // boats: water is cheap and land very expensive (only a canal-sized gap is worth it); trains: the other way round
+  const cost=i=>mode==="boat"?(m[i]?60:1):(m[i]?1:16);
+  const near=(x,y)=>{if(mode!=="boat"||!m[idx(x,y)])return [x,y];for(let r=1;r<15;r++)for(let dx=-r;dx<=r;dx++)for(const dy of [-r,r])if(y+dy>=0&&y+dy<RH&&!m[idx(x+dx,y+dy)])return [x+dx,y+dy];return [x,y]};
+  const [sx,sy]=near(ax,ay),[tx,ty]=near(bx,by),S0=idx(sx,sy),T=idx(tx,ty);
+  const dist=new Float32Array(N).fill(1e9),prev=new Int32Array(N).fill(-1),done=new Uint8Array(N),heap=[];const push=(f,i)=>{heap.push([f,i]);let k=heap.length-1;while(k){const pk=(k-1)>>1;if(heap[pk][0]<=heap[k][0])break;[heap[pk],heap[k]]=[heap[k],heap[pk]];k=pk}};
+  const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let k=0;for(;;){const l=2*k+1,r=l+1;let s=k;if(l<heap.length&&heap[l][0]<heap[s][0])s=l;if(r<heap.length&&heap[r][0]<heap[s][0])s=r;if(s===k)break;[heap[s],heap[k]]=[heap[k],heap[s]];k=s}}return top};
+  const hx=i=>{const x=i%RW,y=(i/RW)|0;let dx=Math.abs(x-tx);dx=Math.min(dx,RW-dx);return Math.hypot(dx,y-ty)*1.05};
+  dist[S0]=0;push(hx(S0),S0);const D=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];let it=0;
+  while(heap.length&&it++<2000000){const [,i]=pop();if(done[i])continue;done[i]=1;if(i===T)break;const x=i%RW,y=(i/RW)|0;
+    for(const [dx,dy,w] of D){const ny=y+dy;if(ny<0||ny>=RH)continue;const j=idx(x+dx,ny);if(done[j])continue;const nd=dist[i]+w*cost(j);if(nd<dist[j]){dist[j]=nd;prev[j]=i;push(nd+hx(j),j)}}}
+  if(prev[T]<0&&T!==S0)return null;const out=[];for(let i=T;i>=0;i=prev[i]){out.push([(i%RW)*RG,((i/RW)|0)*RG]);if(i===S0)break}out.reverse();
+  for(let k=1;k<out.length;k++){while(out[k][0]-out[k-1][0]>W/2)out[k][0]-=W;while(out[k-1][0]-out[k][0]>W/2)out[k][0]+=W}
+  if(out.length){const sh=Math.round((out[0][0]-a[0])/W)*W;out.forEach(q=>q[0]-=sh)}
+  const endX=out.length?out[out.length-1][0]+(b[0]-bx*RG):b[0];
+  let pts=[a.slice(),...out.filter((_,k)=>k%2===0),[endX,b[1]]];for(let s=0;s<3;s++){const q=[pts[0]];for(let k=0;k<pts.length-1;k++){const p0=pts[k],p1=pts[k+1];q.push([p0[0]*.75+p1[0]*.25,p0[1]*.75+p1[1]*.25],[p0[0]*.25+p1[0]*.75,p0[1]*.25+p1[1]*.75])}q.push(pts[pts.length-1]);pts=q}
+  return pts}
 function travel(id,opt,dist){
   busy=true;AMB.transit(opt.mode);
   const a=proj([here().lon,here().lat]),b=proj([BY[id].lon,BY[id].lat]);let bx=b[0];if(bx-a[0]>W/2)bx-=W;else if(a[0]-bx>W/2)bx+=W;
   const rg=$("routeg"),vg=$("vehg");rg.textContent="";vg.textContent="";const path=el("path",{class:"route"},rg),veh=el("path",{d:VEH[opt.mode],class:"vehicle"},vg);
-  const dur=reduce?1:Math.min(2600,900+dist*.12),t0=performance.now();
+  const dur=reduce?1:Math.min(opt.mode==="plane"?2600:3600,900+dist*.14),t0=performance.now();
   const lift=opt.mode==="plane"?Math.min(60,Math.hypot(bx-a[0],b[1]-a[1])*.18):0;
-  const pt=t=>{const x=a[0]+(bx-a[0])*t,y=a[1]+(b[1]-a[1])*t-Math.sin(Math.PI*t)*lift;return [((x%W)+W)%W,y]};
+  let R=null;if(opt.mode!=="plane"){try{R=seaRoute(a,b,opt.mode)}catch(e){R=null}}
+  const cum=R?R.reduce((acc,p,i)=>{acc.push(i?acc[i-1]+Math.hypot(p[0]-R[i-1][0],p[1]-R[i-1][1]):0);return acc},[]):null;
+  const pt=t=>{if(R){const L=cum[cum.length-1]*t;let k=1;while(k<cum.length-1&&cum[k]<L)k++;const f=(L-cum[k-1])/((cum[k]-cum[k-1])||1),x=R[k-1][0]+(R[k][0]-R[k-1][0])*f,y=R[k-1][1]+(R[k][1]-R[k-1][1])*f;return [((x%W)+W)%W,y]}
+    const x=a[0]+(bx-a[0])*t,y=a[1]+(b[1]-a[1])*t-Math.sin(Math.PI*t)*lift;return [((x%W)+W)%W,y]};
   function frame(now){const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,px=view.w/(rect.width||1);
-    let d="",prev=null;for(let i=0;i<=40;i++){const p=pt(e*i/40);d+=(prev&&Math.abs(p[0]-prev[0])<W/2?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1);prev=p}
+    let d="",prev=null;const NS=R?160:40;for(let i=0;i<=NS;i++){const p=pt(e*i/NS);d+=(prev&&Math.abs(p[0]-prev[0])<W/2?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1);prev=p}
     path.setAttribute("d",d);path.setAttribute("stroke-width",2.5*px);if(opt.mode!=="plane")path.setAttribute("stroke-dasharray",`${6*px} ${5*px}`);
     const p=pt(e),q=pt(Math.min(1,e+.01));let ang=Math.atan2(q[1]-p[1],q[0]-p[0])*180/Math.PI;if(Math.abs(q[0]-p[0])>W/2)ang=0;
     veh.setAttribute("transform",`translate(${p[0]},${p[1]}) rotate(${opt.mode==="plane"?ang+90:0}) scale(${1.6*px})`);
@@ -4678,7 +4703,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 67 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 68 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
