@@ -94,7 +94,7 @@ main{position:relative;min-height:0}
 .walk .walkhint{z-index:3}
 .joy{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:14px;width:132px;height:132px;border-radius:50%;background:color-mix(in srgb,var(--paper) 72%,transparent);border:1.5px solid var(--line);box-shadow:0 3px 10px #0003;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;color:var(--muted);z-index:3}
 .joy svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.joy .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--accent);border:3px solid var(--paper);box-shadow:0 2px 8px #0005;pointer-events:none;transition:transform .08s}
+.joy .knob{position:absolute;box-sizing:border-box;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:var(--accent);border:3px solid var(--paper);box-shadow:0 2px 8px #0005;pointer-events:none;transition:transform .08s}
 .joy.on .knob{transition:none}
 .w3fail{position:absolute;inset:auto 16px 16px 16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;z-index:4}
 .walk .near{z-index:3;right:166px}
@@ -1325,7 +1325,17 @@ function genMap(c){
   return {isWater:(x,y)=>isWater(x,y),w:W,h:H,bg:"land",land:[],parks,deco:[],blocks:[],water,labels:[],nodes,E,pois,start};
 }
 const MAPC={};
-function cityMap(c){return MAPC[c.id]||(MAPC[c.id]=c.id==="sto"?sthlmMap():genMap(c))}
+function cityMap(c){return MAPC[c.id]||(MAPC[c.id]=tidyMap(c.id==="sto"?sthlmMap():genMap(c)))}
+/* no loose ends: drop dead-end stubs that lead nowhere, and stop a bridge at the shore when only a place waits on the other side */
+function tidyMap(m){const pn=new Set(m.pois.map(p=>p.node)),land=m.bg==="water"?(x,y)=>m.land.some(q=>pip([x,y],q)):(x,y)=>!(m.isWater&&m.isWater(x,y));
+  for(let ch=1;ch;){ch=0;const deg={};for(const [u,v] of m.E){deg[u]=(deg[u]||0)+1;deg[v]=(deg[v]||0)+1}
+    m.E=m.E.filter(([u,v])=>{if((deg[u]===1&&!pn.has(u))||(deg[v]===1&&!pn.has(v))){ch=1;return false}return true})}
+  const deg={};for(const [u,v] of m.E){deg[u]=(deg[u]||0)+1;deg[v]=(deg[v]||0)+1}
+  for(const e of m.E){if(!e[2])continue;for(const [end,from] of [[e[1],e[0]],[e[0],e[1]]]){if(deg[end]!==1)continue;
+    const A=m.nodes[from],B=m.nodes[end],L=dist2(A,B);let wet=false,cut=null;
+    for(let t=0;t<=L;t+=1){const x=A[0]+(B[0]-A[0])*t/L,y=A[1]+(B[1]-A[1])*t/L,l=land(x,y);if(!l)wet=true;else if(wet&&cut==null)cut=t}
+    if(cut!=null&&L-cut>14){const t=Math.min(L,cut+12)/L;m.nodes[end]=[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t]}}}
+  return m}
 function route(m,a,b){
   const adj={};for(const [u,v] of m.E){(adj[u]=adj[u]||[]).push(v);(adj[v]=adj[v]||[]).push(u)}
   const d={},prev={},Q=new Set(Object.keys(m.nodes));for(const k of Q)d[k]=Infinity;d[a]=0;
@@ -2673,14 +2683,8 @@ function drawPaperMap(g,c,m,wd,now,vb){
   g.strokeStyle=INK;g.lineWidth=2;if(m.bg==="water")for(const q of m.land){pth(q);g.stroke()}else for(const q of m.water){pth(q);g.stroke()}
   const names=streetNames(c),line=(a,b,w,col)=>{g.strokeStyle=col;g.lineWidth=w;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()};
   for(const s of names)line(m.nodes[s.u],m.nodes[s.v],23,INK);
-  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],19,STREET);for(const s of names)if(s.main)line(m.nodes[s.u],m.nodes[s.v],19,MAIN);
-  // bridges: a wooden deck with railings, only where the street is over water, so they end at the shore
-  {const br=names.filter(s=>s.b);if(br.length){g.save();g.beginPath();
-    if(m.bg==="water"){g.rect(-50,-50,m.w+100,m.h+100);for(const q of m.land){q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath()}g.clip("evenodd")}
-    else{for(const q of m.water){q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath()}g.clip()}
-    g.lineCap="butt";for(const s of br)line(m.nodes[s.u],m.nodes[s.v],23,INK);for(const s of br)line(m.nodes[s.u],m.nodes[s.v],19,"#d8c39a");
-    g.strokeStyle="rgba(27,40,56,.35)";g.lineWidth=1;for(const s of br){const a=m.nodes[s.u],b=m.nodes[s.v],L=dist2(a,b),ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;g.beginPath();for(let t=3;t<L;t+=5){const x=a[0]+ux*t,y=a[1]+uy*t;g.moveTo(x-uy*9,y+ux*9);g.lineTo(x+uy*9,y-ux*9)}g.stroke()}
-    g.restore();g.lineCap="round"}}
+  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],19,MAIN);
+
   // street names printed along the streets
   g.fillStyle=INK;g.textAlign="center";g.textBaseline="middle";
   const used=new Set(m.pois.map(p=>p.node)),runs=[];
@@ -2869,7 +2873,7 @@ function drawStreet(now){
   if(rain){g.fillStyle="rgba(70,80,100,.18)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(220,230,245,.5)";g.lineWidth=1;g.beginPath();const t=now/1000;
     for(let i=0;i<90;i++){const x=((i*97+t*60)%(Wp+40))-20,y=((i*53+t*520)%(Hp+40))-20;g.moveTo(x,y);g.lineTo(x-4,y+12)}g.stroke()}
   if(W3.guide!=null){const tp=m.pois[W3.guide],d0=tp&&m.nodes[tp.node];const G=W3.guideAt||p;if(!d0||dist2(d0,p)<NEAR_R*1.6||dist2(G,p)>280)W3.guide=null;else{
-    const [ax,ay]=proj(G[0],G[1],44),[px0,py0]=proj(G[0],G[1],0),[tx,ty]=proj(d0[0],d0[1],0),ang=Math.atan2(ty-py0,tx-px0),r=9*s,pul=1+.08*Math.sin(now/220);
+    const [ax,ay]=proj(G[0],G[1],78),[px0,py0]=proj(G[0],G[1],0),[tx,ty]=proj(d0[0],d0[1],0),ang=Math.atan2(ty-py0,tx-px0),r=9*s,pul=1+.08*Math.sin(now/220);
     g.save();g.translate(ax,ay);g.rotate(ang);g.scale(pul,pul);g.fillStyle="#f39a2b";g.strokeStyle="#fff";g.lineWidth=3;g.lineJoin="round";g.beginPath();g.moveTo(r,0);g.lineTo(-r*.5,-r*.7);g.lineTo(-r*.2,0);g.lineTo(-r*.5,r*.7);g.closePath();g.stroke();g.fill();g.restore();
     const mins=Math.max(1,Math.round(dist2(d0,G)*1.25/WALK_SPEED));g.font=`800 ${Math.max(11,4.2*s)}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="bottom";g.lineWidth=3;g.strokeStyle="#fff";g.fillStyle="#1b2838";
     const tl=poiName(tp,c)+" · "+mins+" min";g.strokeText(tl,ax,ay-r-4);g.fillText(tl,ax,ay-r-4)}}
@@ -4393,7 +4397,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 48 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 49 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
