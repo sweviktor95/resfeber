@@ -2898,7 +2898,11 @@ function thiefStep(dt,wd,p){const night=isDark();let T=W3.thief;
   const dx=p[0]-T.x,dy=p[1]-T.y,L=Math.hypot(dx,dy);if(L>210||(L>90&&!inView(T.x,T.y,p,-40))){W3.thief=null;W3.thiefCool=performance.now()+60000;toast("Du skakade av dig tjuven!");return}
   if(performance.now()<(T.wait||0)){T.dir=Math.atan2(dx,dy);return}
   if(L<7){const a=Math.min(1500,r10(S.money*.4));W3.thief=null;W3.thiefCool=performance.now()+90000;if(a>0){S.money-=a;EV.push({type:"rob",a});keys.clear();joyV=[0,0];renderHeader();save();flushEvents()}return}
-  const v=PLAYER_SPEED*.92*dt,nx=T.x+dx/L*v,ny=T.y+dy/L*v;T.dir=Math.atan2(dx,dy);if(wd.walkable(nx,ny)){T.x=nx;T.y=ny}else if(wd.walkable(nx,T.y))T.x=nx;else if(wd.walkable(T.x,ny))T.y=ny;else{T.x=nx;T.y=ny}}
+  const v=PLAYER_SPEED*.92*dt,nx=T.x+dx/L*v,ny=T.y+dy/L*v;T.dir=Math.atan2(dx,dy);if(wd.walkable(nx,ny)){T.x=nx;T.y=ny;T.side=0}else{
+    // blocked by water: steer along the shore instead of riding across it, keep turning the same way so it doesn't jitter
+    const base=Math.atan2(dy,dx),sd=T.side||(Math.random()<.5?1:-1);let moved=false;
+    for(const s of [sd,-sd])for(let k=1;k<=8&&!moved;k++){const a2=base+s*k*Math.PI/9,x=T.x+Math.cos(a2)*v,y=T.y+Math.sin(a2)*v;if(wd.walkable(x,y)){T.x=x;T.y=y;T.side=s;T.dir=Math.atan2(Math.cos(a2),Math.sin(a2));moved=true}}
+  }}
 const TREE_IMG=(()=>{const cv=document.createElement("canvas");cv.width=128;cv.height=192;const g=cv.getContext("2d");g.lineWidth=4;g.strokeStyle="#1b2838";
   g.fillStyle="#6b4a2e";g.fillRect(56,120,16,70);g.strokeRect(56,120,16,70);g.fillStyle="#5e8c4a";g.beginPath();g.arc(64,72,56,0,7);g.fill();g.stroke();g.fillStyle="#77a35c";g.beginPath();g.arc(48,60,28,0,7);g.fill();return cv})();
 function w3Light(){}
@@ -4398,7 +4402,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 50 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 51 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
