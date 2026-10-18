@@ -2643,10 +2643,10 @@ function streetNames(c){const m=cityMap(c);if(m.snames)return m.snames;const out
   return m.snames=out}
 /* city blocks printed on the paper: everything that is not street, water, park or a square */
 function paperBlocks(c){const m=cityMap(c);if(m.pblocks)return m.pblocks;const wd=buildWorld(c),cs=c.id==="sto"?24:30,R=rng(hash(c.id+"paper")),out=[];
-  const segs=wd.segs,foot=m.pois.map(p=>{const d=m.nodes[p.node],w=(p._w||30)/2+5;return [d[0]-w,d[1]-p._back-(p._w||30)*.75,d[0]+w,d[1]+4]}),inPark=(x,y)=>m.parks.some(q=>pip([x,y],q));
+  const segs=wd.segs,foot=m.pois.map(p=>{const d=m.nodes[p.node],w=(p._w||30)/2+6;return [d[0]-w,d[1]-p._back-(p._w||30)*.9,d[0]+w,d[1]+4]}),inPark=(x,y)=>m.parks.some(q=>pip([x,y],q));
   for(let x=0;x<m.w;x+=cs)for(let y=0;y<m.h;y+=cs){const x0=x+3,y0=y+3,x1=x+cs-3,y1=y+cs-3,cx=x+cs/2,cy=y+cs/2;
     const cr=[[x0-4,y0-4],[x1+4,y0-4],[x0-4,y1+4],[x1+4,y1+4]];if(!cr.every(q=>wd.isLand(q[0],q[1])))continue;if(inPark(cx,cy)||cr.some(q=>inPark(q[0],q[1])))continue;
-    if(segs.some(q=>segDist([cx,cy],q[0],q[1])<15+cs*.62))continue;if(foot.some(f=>x1>f[0]&&x0<f[2]&&y1>f[1]&&y0<f[3]))continue;
+    if(segs.some(q=>segDist([cx,cy],q[0],q[1])<15+cs*.62))continue;if(foot.some(f=>x1>f[0]&&x0<f[2]&&y1>f[1]&&y0<f[3]))continue;if((m.labels||[]).some(l=>Math.abs(l.p[0]-cx)<l.t.length*4.5+cs*.5&&Math.abs(l.p[1]-cy)<10+cs*.5))continue;
     const r=R();out.push([x0,y0,x1,y1,r<.16?"#e5452b":r<.2?"#f7c948":"#f39a2b"])}
   return m.pblocks=out}
 function drawPaperMap(g,c,m,wd,now,vb){
