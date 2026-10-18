@@ -2325,7 +2325,7 @@ function labelCanvas(text,kind,ico,col){
   const ic=new Path2D(ICONP[ico||POI_ICON[kind]]||ICONP.info);g.save();g.translate(x+32,40);g.strokeStyle="#fff";g.lineWidth=2.4;g.stroke(ic);g.restore();
   return cv;
 }
-const ICONP={plane:"M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z",
+const ICONP={pint:"M6 4h12l-1.5 16h-9z M6.5 9h11",plane:"M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z",
   bed:"M2 18V6M2 11h20v7M2 15h20M6 11V9a2 2 0 012-2h3v4",brief:"M5 7h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 13h18",
   camera:"M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1zM15.5 13.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z",
   cup:"M4 9h13v5a5 5 0 01-5 5H9a5 5 0 01-5-5V9zM17 10h1.5a2.5 2.5 0 010 5H17M8 3v3M12 3v3",map:"M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14",
@@ -3124,19 +3124,38 @@ function doJob(k){
     box.innerHTML=`<h2>${right>=4?"Bra jobbat!":right>=3?"Godkänt, men inte klart.":"Chefen var inte nöjd."}</h2><div class="sub">${right} av 5 rätt · passet tog 6 timmar${right<4?" · minst 4 rätt behövs för att klara jobbet":""}</div><div class="result">+${fmt(pay)} kr</div>${extra}<button class="btn primary" type="button" id="ok">Fortsätt</button>`;
     box.querySelector("#ok").onclick=closeModal;render()}});
 }
+/* ================= Real photos of the sights (Wikipedia / Wikimedia Commons, fetched on the player's device) ================= */
+const SIGHT_WIKI={"sto":["Vasa Museum","Stockholm City Hall","Stockholm Palace"],"rey":["Hallgrímskirkja","Harpa (concert hall)","Sun Voyager"],"lon":["Tower Bridge","Big Ben","British Museum"],"par":["Eiffel Tower","Arc de Triomphe","Louvre"],"rom":["Trevi Fountain","Colosseum","Pantheon, Rome"],"bln":["East Side Gallery","Brandenburg Gate","Reichstag building"],"bcn":["Sagrada Família","Park Güell","La Rambla, Barcelona"],"ath":["Parthenon","Panathenaic Stadium","Ancient Agora of Athens"],"ist":["Hagia Sophia","Blue Mosque, Istanbul","Grand Bazaar, Istanbul"],"ven":["Rialto Bridge","St Mark's Square","Bridge of Sighs"],"nyc":["Statue of Liberty","Empire State Building","Central Park"],"mex":["Pyramid of the Sun","Zócalo","Frida Kahlo Museum"],"rio":["Christ the Redeemer (statue)","Sugarloaf Mountain","Copacabana, Rio de Janeiro"],"cus":["Machu Picchu","Sacsayhuamán","Plaza de Armas, Cusco"],"cai":["Great Sphinx of Giza","Giza pyramid complex","Egyptian Museum"],"nbo":["Nairobi National Park","Giraffe Centre","Karura Forest"],"cpt":["Robben Island","Table Mountain","Cape of Good Hope"],"mum":["Gateway of India","Chhatrapati Shivaji Maharaj Terminus","Marine Drive, Mumbai"],"bkk":["Wat Arun","Grand Palace","Damnoen Saduak floating market"],"dxb":["Burj Khalifa","Palm Jumeirah","Gold Souk, Dubai"],"pek":["Forbidden City","Mutianyu","Temple of Heaven"],"tyo":["Shibuya Crossing","Sensō-ji","Tokyo Skytree"],"syd":["Sydney Opera House","Sydney Harbour Bridge","Bondi Beach"],"van":["Stanley Park","Capilano Suspension Bridge","Gastown"],"sfo":["Golden Gate Bridge","Alcatraz Island","San Francisco cable car system"],"bue":["La Boca","Casa Rosada","Obelisco de Buenos Aires"],"agr":["Taj Mahal","Agra Fort","Mehtab Bagh"],"sin":["Merlion","Marina Bay Sands","Gardens by the Bay"],"hkg":["Victoria Peak","Star Ferry","Tian Tan Buddha"],"lax":["Hollywood Sign","Santa Monica Pier","Griffith Observatory"],"was":["White House","United States Capitol","Lincoln Memorial"],"yyz":["CN Tower","Casa Loma","Toronto Islands"],"hav":["Malecón, Havana","El Capitolio","Old Havana"],"scl":["San Cristóbal Hill","Plaza de Armas, Santiago","La Moneda Palace"],"rak":["Jemaa el-Fnaa","Koutoubia Mosque","Majorelle Garden"],"znz":["Stone Town","Forodhani Gardens",""],"sel":["Gyeongbokgung","N Seoul Tower","Bukchon Hanok Village"],"kyo":["Fushimi Inari-taisha","Kinkaku-ji","Sagano Bamboo Forest"],"mel":["Flinders Street railway station","Federation Square","Royal Botanic Gardens, Melbourne"],"akl":["Sky Tower (Auckland)","Viaduct Harbour","Maungawhau / Mount Eden"],"chi":["Cloud Gate","Willis Tower","Navy Pier"],"msy":["French Quarter","Jackson Square (New Orleans)","Natchez (1975 steamboat)"],"lim":["Plaza Mayor, Lima","Huaca Pucllana","Miraflores District, Lima"],"ctg":["Walls of Cartagena","Castillo San Felipe de Barajas","Getsemaní"],"uio":["Ciudad Mitad del Mundo","Basílica del Voto Nacional","El Panecillo"],"mao":["Teatro Amazonas","Meeting of Waters","Amazon rainforest"],"lpb":["Mi Teleférico","Witches' Market, La Paz","Valle de la Luna (Bolivia)"],"ush":["Les Eclaireurs Lighthouse","Beagle Channel","Tierra del Fuego National Park"],"acc":["Black Star Square","Jamestown Lighthouse","Kwame Nkrumah Memorial Park"],"add":["National Museum of Ethiopia","Merkato (Addis Ababa)","Holy Trinity Cathedral, Addis Ababa"],"dkr":["African Renaissance Monument","Gorée","Lake Retba"],"lvi":["Victoria Falls","Devil's Pool","Zambezi"],"tnr":["Rova of Antananarivo","Lemurs' Park","Analakely"],"cns":["Great Barrier Reef","Kuranda Scenic Railway","Cairns Esplanade"],"asp":["Uluru","Kings Canyon (Northern Territory)","Alice Springs Telegraph Station"],"per":["Kings Park, Western Australia","Rottnest Island","Elizabeth Quay"],"wlg":["Museum of New Zealand Te Papa Tongarewa","Wellington Cable Car","Mount Victoria, Wellington"],"zqn":["Skyline Queenstown","Lake Wakatipu","Shotover River"],"hnl":["Waikiki","Diamond Head, Hawaii","Pearl Harbor"],"ppt":["Papeete Market","Point Venus","Fautaua Waterfall"]};
+const IMGC={};let IMGS={};try{IMGS=JSON.parse(localStorage.getItem("resfeber-img")||"{}")}catch(e){}
+function wikiImg(c,i){const key=c.id+":"+i;if(IMGC[key])return IMGC[key];
+  const get=async u=>{const r=await fetch(u);if(!r.ok)throw 0;return r.json()},pick=j=>{const ps=j&&j.query&&j.query.pages;if(!ps)return null;for(const k in ps){const t=ps[k].thumbnail;if(t&&t.source)return t.source}return null};
+  const api=(lang,q)=>`https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=900&${q}`;
+  return IMGC[key]=(async()=>{if(IMGS[key])return IMGS[key];const t=(SIGHT_WIKI[c.id]||[])[i];let u=null;
+    try{if(t)u=pick(await get(api("en","titles="+encodeURIComponent(t))))}catch(e){}
+    if(!u)try{u=pick(await get(api("sv","generator=search&gsrlimit=1&gsrsearch="+encodeURIComponent(c.s[i]+" "+c.n))))}catch(e){}
+    if(!u)try{u=pick(await get(api("en","generator=search&gsrlimit=1&gsrsearch="+encodeURIComponent((t||c.s[i])+" "+c.n))))}catch(e){}
+    if(u){IMGS[key]=u;try{localStorage.setItem("resfeber-img",JSON.stringify(IMGS))}catch(e){}}return u})()}
+const IMGEL={};
+function loadImg(u){return IMGEL[u]||(IMGEL[u]=new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=no;im.referrerPolicy="no-referrer";im.src=u}))}
+/* draws the painted scene at once, then swaps in the real photo when it has loaded; tinted for the time of day */
+function paintPhoto(cv,c,i,hour){drawScene(cv,c,hour);
+  wikiImg(c,i).then(u=>u&&loadImg(u)).then(im=>{if(!im||!cv.isConnected)return;const g=cv.getContext("2d"),W=cv.width,H=cv.height,k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;
+    g.save();g.setTransform(1,0,0,1,0,0);g.drawImage(im,(W-w)/2,(H-h)/2,w,h);
+    const hh=((hour%24)+24)%24;if(hh<8.5||hh>=17.5){g.globalCompositeOperation="soft-light";g.fillStyle=hh<8.5?"rgba(255,170,120,.55)":"rgba(255,120,60,.6)";g.fillRect(0,0,W,H)}
+    g.globalCompositeOperation="source-over";g.font=`600 ${Math.round(W/42)}px Figtree, sans-serif`;g.textAlign="right";g.textBaseline="bottom";g.fillStyle="rgba(0,0,0,.45)";const tx="Foto: Wikimedia Commons";const tw=g.measureText(tx).width;g.fillRect(W-tw-12,H-Math.round(W/42)-8,tw+12,Math.round(W/42)+8);g.fillStyle="#fff";g.fillText(tx,W-6,H-4);g.restore()}).catch(()=>{})}
 function openSight(i){
   const c=here(),name=c.s[i];
   if(isDark()){modal(`<h2>${esc(name)}</h2><div class="sub">Det är för mörkt för att fotografera. Klockan är ${clock()}. Kom tillbaka när det är ljust, efter 06:30.</div><button class="close" type="button">Stäng</button>`);return}
   if(rainy()){const m=modal(`<h2>${esc(name)}</h2><div class="sub">Det ösregnar i ${esc(c.n)} och bilderna blir bara grå. Vädret kan slå om till ${hourOf()<13?"eftermiddagen (efter 13:00)":"i morgon"}, så du kan vänta eller göra något annat så länge.</div>${hourOf()<13?`<button class="btn" type="button" id="wait">Vänta till 13:00</button>`:""}<button class="close" type="button">Stäng</button>`);
     const wb=m.querySelector("#wait");if(wb)wb.onclick=()=>{pass(13-hourOf());closeModal();render();toast(rainy()?"Det regnar fortfarande.":"Uppehåll! Nu går det att fotografera.")};return}
-  const has=S.photos.some(p=>p.c===c.id&&p.s===i);
+  const has=S.photos.some(p=>p.c===c.id&&p.s===i);wikiImg(c,i).then(u=>u&&loadImg(u)).catch(()=>{});
   const m=modal(`<h2>${esc(name)}</h2><div class="sub">${has?"Du har redan en bild härifrån i albumet.":"Klubben vill ha bilder på särskilda platser. Är det här rätt motiv för något av dina uppdrag?"}</div><button class="btn primary" type="button" id="shoot">Ta en bild · plats för ${S.film||0} i molnet</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#shoot").onclick=()=>{if(needFilm())return;closeModal();takePhoto(i)};
 }
 function takePhoto(i){
   const c=here(),cam=document.createElement("div");cam.className="camera";
   cam.innerHTML=`<canvas></canvas><div class="vf"></div><div class="lab">${esc(c.s[i].toUpperCase())}</div><div class="fl"></div>`;
-  document.body.appendChild(cam);drawScene(cam.querySelector("canvas"),c,hourOf());busy=true;
+  document.body.appendChild(cam);paintPhoto(cam.querySelector("canvas"),c,i,hourOf());busy=true;
   setTimeout(()=>{cam.querySelector(".fl").classList.add("go");AMB.shutter()},650);
   setTimeout(()=>{cam.remove();busy=false;
     const hr=hourOf();S.film=Math.max(0,(S.film||0)-1);S.photos.push({c:c.id,s:i,h:hr,d:dayOf()});pass(1);spendEnergy(3);
@@ -3147,7 +3166,7 @@ function takePhoto(i){
       html+=`<div class="stamp"><div><div>UPPDRAG</div><strong>KLART</strong><div>+${MISSION_XP} XP</div></div></div></div><h2 style="margin-top:22px">Klubben är nöjd!</h2><div class="sub">Bilden skickas hem. Du får ${fmt(t.reward)} kr och ${MISSION_XP} erfarenhetspoäng.</div><div class="fact">${esc(c.f)}</div>`}
     else{html+=`</div><h2 style="margin-top:18px">Fint foto!</h2><div class="sub">${S.missions.includes(c.id)?"Det här var inte motivet klubben ville ha. Läs uppdraget igen.":"Bilden hamnar i ditt album."}</div>`}
     const m=modal(html+`<button class="btn primary" type="button" id="ok">Fortsätt</button>`,{center:true,dismiss:false});
-    requestAnimationFrame(()=>drawScene(m.querySelector(".polaroid canvas"),c,hr));
+    requestAnimationFrame(()=>paintPhoto(m.querySelector(".polaroid canvas"),c,i,hr));
     m.querySelector("#ok").onclick=closeModal;render();
   },1150);
 }
@@ -3349,14 +3368,20 @@ function drawCityMap(){const ov=$("cmap");if(!ov)return;const cv=ov.querySelecto
   g.setTransform(d,0,0,d,0,0);g.fillStyle="#f5eedb";g.fillRect(0,0,W_,H_);g.save();g.setTransform(d*k,0,0,d*k,d*CM.ox,d*CM.oy);g.lineJoin="round";g.lineCap="round";
   drawPaperMap(g,c,m,wd,performance.now(),[-(CM.ox)/k-50,-(CM.oy)/k-50,(W_-CM.ox)/k+50,(H_-CM.oy)/k+50]);g.restore();
   const sc=(x,y)=>[CM.ox+x*k,CM.oy+y*k],f=foundList(c);g.setTransform(d,0,0,d,0,0);g.textAlign="center";g.textBaseline="top";
+  const LB=[];{const [px,py]=sc(...meXY()),t=performance.now()/400;g.fillStyle="rgba(38,72,201,.25)";g.beginPath();g.arc(px,py,14+4*Math.sin(t),0,7);g.fill();g.fillStyle="#2648c9";g.strokeStyle="#fff";g.lineWidth=3;g.beginPath();g.arc(px,py,8,0,7);g.fill();g.stroke();LB.push({x:px,y:py,nm:"DU",bg:"#c9d6ff",me:1})}
   m.pois.forEach((p,i)=>{const [x,y]=sc(...m.nodes[p.node]),col=p.type==="info"?"#2a9d8f":p.type==="sight"?"#c13a2a":p.type==="lux"||p.type==="hostel"?"#c98a12":p.type==="job"&&CATS[JOB_CAT[p.job]]?CATS[JOB_CAT[p.job]].col:p.type==="travel"?"#1b2838":"#2648c9";
     const dn=poiDone(c,p);g.fillStyle=dn?"#3d9a4f":col;g.strokeStyle="#fff";g.lineWidth=2.5;g.beginPath();g.arc(x,y,13,0,7);g.fill();g.stroke();
     if(dn){g.strokeStyle="#fff";g.lineWidth=3;g.lineCap="round";g.lineJoin="round";g.beginPath();g.moveTo(x-5.5,y);g.lineTo(x-1.5,y+4.5);g.lineTo(x+6,y-4.5);g.stroke()}
     else{const ic=new Path2D(ICONP[poiIco(p)]||ICONP.info);g.save();g.translate(x-8.4,y-8.4);g.scale(.7,.7);g.strokeStyle="#fff";g.lineWidth=2.6;g.stroke(ic);g.restore()}
-    const nm=poiName(p,c);g.font="700 11.5px Figtree, system-ui, sans-serif";const tw=g.measureText(nm).width;g.fillStyle=dn?"#d6f0d9":f.includes(i)?"#fbf8f1":"#fff3c4";g.strokeStyle="#1b2838";g.lineWidth=1.2;
-    g.beginPath();g.roundRect?g.roundRect(x-tw/2-5,y+16,tw+10,17,8):g.rect(x-tw/2-5,y+16,tw+10,17);g.fill();g.stroke();g.fillStyle="#1b2838";g.fillText(nm,x,y+18.5)});
-  const [px,py]=sc(...meXY()),t=performance.now()/400;g.fillStyle="rgba(38,72,201,.25)";g.beginPath();g.arc(px,py,14+4*Math.sin(t),0,7);g.fill();g.fillStyle="#2648c9";g.strokeStyle="#fff";g.lineWidth=3;g.beginPath();g.arc(px,py,8,0,7);g.fill();g.stroke();
-  g.font="800 11px Figtree, system-ui, sans-serif";g.fillStyle="#2648c9";g.fillText("DU",px,py-26)}
+    LB.push({x,y,nm:poiName(p,c),bg:dn?"#d6f0d9":f.includes(i)?"#fbf8f1":"#fff3c4"})});
+  // labels: try spots around each dot and take the first one that hits no dot and no other label
+  {g.font="700 11.5px Figtree, system-ui, sans-serif";const boxes=LB.filter(l=>!l.me).map(l=>[l.x-15,l.y-15,l.x+15,l.y+15]);
+    const hit=(b,q)=>b[0]<q[2]&&b[2]>q[0]&&b[1]<q[3]&&b[3]>q[1],ov2=(b,q)=>Math.max(0,Math.min(b[2],q[2])-Math.max(b[0],q[0]))*Math.max(0,Math.min(b[3],q[3])-Math.max(b[1],q[1]));
+    for(const l of LB){const tw=g.measureText(l.nm).width+10,bh=17,cands=[[-tw/2,16],[-tw/2,-16-bh],[16,-bh/2],[-16-tw,-bh/2],[10,10],[-10-tw,10],[10,-10-bh],[-10-tw,-10-bh],[-tw/2,34],[-tw/2,-34-bh]];
+      let best=null,bs=1e9;for(const [ox,oy] of cands){const b=[l.x+ox,l.y+oy,l.x+ox+tw,l.y+oy+bh],sc2=boxes.reduce((a,q)=>a+ov2(b,q),0)+(b[0]<4||b[2]>W_-4||b[1]<4||b[3]>H_-4?1e6:0);if(sc2<bs){bs=sc2;best=b}if(sc2===0)break}
+      boxes.push(best);g.fillStyle=l.bg;g.strokeStyle="#1b2838";g.lineWidth=1.2;g.beginPath();g.roundRect?g.roundRect(best[0],best[1],tw,bh,8):g.rect(best[0],best[1],tw,bh);g.fill();g.stroke();
+      g.fillStyle="#1b2838";g.textAlign="center";g.textBaseline="top";g.fillText(l.nm,best[0]+tw/2,best[1]+2.5)}}
+}
 function needFilm(){if((S.film||0)>0)return false;modal(`<h2>Molnet är fullt</h2><div class="sub">Det finns ingen plats kvar för fler bilder i din molnlagring. Köp mer i butiken: plats för ${FILM.shots} bilder kostar ${FILM.price} kr.</div><button class="close" type="button">Okej</button>`);return true}
 
 /* ================= Taxi from the info kiosk to places you have already found ================= */
@@ -4247,7 +4272,7 @@ function renderBag(){
    <div><div class="sec-h"><span>Inställningar</span></div><div style="font-size:13px;color:var(--muted)">Spela med</div>${handPicker()}</div>
    <button class="linkbtn" id="restart" type="button">Börja om från början</button>`;wireHand($("bag"));
   $("bag").querySelectorAll("[data-tip]").forEach(b=>b.onclick=()=>{const id=b.dataset.tip;if(S.money<TIP_COST)return;S.money-=TIP_COST;S.tips.push(id);render()});
-  requestAnimationFrame(()=>$("bag").querySelectorAll("canvas[data-pi]").forEach(cv=>{const p=S.photos[+cv.dataset.pi];drawScene(cv,BY[p.c],p.h)}));
+  requestAnimationFrame(()=>$("bag").querySelectorAll("canvas[data-pi]").forEach(cv=>{const p=S.photos[+cv.dataset.pi];paintPhoto(cv,BY[p.c],p.s,p.h)}));
   $("restart").onclick=()=>{const m=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`);
     m.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}};
 }
@@ -4402,7 +4427,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 51 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 53 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
