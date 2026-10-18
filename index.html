@@ -3096,7 +3096,10 @@ function drawStreet(now){
   if(rain){g.fillStyle="rgba(70,80,100,.18)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(220,230,245,.5)";g.lineWidth=1;g.beginPath();const t=now/1000;
     for(let i=0;i<90;i++){const x=((i*97+t*60)%(Wp+40))-20,y=((i*53+t*520)%(Hp+40))-20;g.moveTo(x,y);g.lineTo(x-4,y+12)}g.stroke()}
   if(wx==="fog"){const t=now/9000,gr=g.createLinearGradient(0,0,0,Hp);gr.addColorStop(0,"rgba(232,236,240,.78)");gr.addColorStop(.6,"rgba(232,236,240,.5)");gr.addColorStop(1,"rgba(232,236,240,.62)");g.fillStyle=gr;g.fillRect(0,0,Wp,Hp);
-    g.fillStyle="rgba(255,255,255,.22)";for(let i=0;i<6;i++){const x=((i*173+t*Wp*.6)%(Wp+300))-150,y=Hp*(.15+i*.14);g.beginPath();g.ellipse(x,y,170,38,0,0,7);g.fill()}}
+    g.fillStyle="rgba(255,255,255,.26)";const drift=now/1000*4,gx0=Math.floor((p[0]-drift-260)/110),gy0=Math.floor((p[1]-300)/70);
+    // fog banks sit in the world and drift slowly with the wind, so they slide past as you walk
+    for(let gx=gx0;gx<gx0+6;gx++)for(let gy=gy0;gy<gy0+10;gy++){const r=Math.sin(gx*12.9898+gy*78.233)*43758.5453,f=r-Math.floor(r),wx=gx*110+f*60+drift,wy=gy*70+f*30;
+      const [sx,sy]=proj(wx,wy,14);if(sx<-200||sx>Wp+200||sy<-100||sy>Hp+100)continue;g.beginPath();g.ellipse(sx,sy,(60+f*40)*s,(14+f*8)*s,0,0,7);g.fill()}}
   if(wx==="snow"){g.fillStyle="rgba(214,224,238,.38)";g.fillRect(0,0,Wp,Hp);g.fillStyle="#fff";g.strokeStyle="rgba(120,140,170,.45)";g.lineWidth=.8;const t=now/1000;
     for(let i=0;i<170;i++){const x=((i*97+Math.sin(t+i)*14+t*18)%(Wp+20))-10,y=((i*61+t*55*(.6+(i%5)*.15))%(Hp+20))-10;g.beginPath();g.arc(x,y,1.8+(i%4)*.7,0,7);g.fill();g.stroke()}}
   if(wx==="sand"){g.fillStyle="rgba(206,150,82,.5)";g.fillRect(0,0,Wp,Hp);g.strokeStyle="rgba(245,215,165,.7)";g.lineWidth=1.6;g.beginPath();const t=now/1000;
@@ -4703,7 +4706,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 68 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 69 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
