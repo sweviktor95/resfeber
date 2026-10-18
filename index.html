@@ -338,7 +338,7 @@ body.lefty .cmap-top{left:64px;right:var(--sl)}
         <g id="grat"></g><g id="landg"></g><g id="landwrap"></g><g id="routeg"></g><g id="cityg"></g><g id="lblg"></g><g id="vehg"></g>
       </svg>
       <button class="backbtn" id="mapback" type="button">‹ Tillbaka till staden</button>
-      <div class="maphint" id="maphint"></div>
+      <div class="maphint" id="maphint" hidden></div>
       <div class="mapctl">
         <button id="zin" type="button" aria-label="Zooma in">+</button>
         <button id="zout" type="button" aria-label="Zooma ut">−</button>
@@ -1232,8 +1232,8 @@ function zoomAt(f,cx,cy){const nw=Math.max(40,Math.min(view.w*f,maxW())),k=nw/vi
 function fitContinent(k){rect=svg.getBoundingClientRect();if(!rect.width)return;const pts=CITIES.filter(c=>c.t===k).map(c=>proj([c.lon,c.lat]));if(!pts.length)return;
   mapCont=k;const xs=CITIES.filter(c=>c.t===k).map(c=>proj([c.lon,c.lat])[0]+wrapX(c));
   let x0=Math.min(...xs),x1=Math.max(...xs)+70,y0=Math.min(...pts.map(p=>p[1])),y1=Math.max(...pts.map(p=>p[1]));const ar=rect.height/rect.width;
-  const bw=Math.max(60,x1-x0),bh=Math.max(40,y1-y0);let w=Math.max(bw/.86,bh/.66/ar);view.need=w;view.w=w;view.h=view.w*ar;
-  view.x=(x0+x1)/2-view.w/2;view.y=y0-view.h*.2-Math.max(0,(view.h*.66-bh)/2);applyView();renderConts()}
+  const bh=Math.max(40,y1-y0);view.h=bh/.68;view.w=view.h/ar;view.need=view.w;
+  const me=here(),cx=me.t===k?proj([me.lon,me.lat])[0]+wrapX(me):(x0+x1-70)/2;view.x=cx-view.w/2;view.y=y0-view.h*.18;applyView();renderConts()}
 let mapCont=null;
 function renderConts(){const n=unlocked(),b=$("conts");if(!b)return;b.innerHTML=TIERS.map((t,i)=>`<button type="button" data-k="${t.k}" class="${t.k===mapCont?"on":""} ${i>=n?"lk":""}">${i>=n?"🔒 ":""}${t.name}</button>`).join("");
   b.querySelectorAll("button").forEach(x=>x.onclick=()=>fitContinent(x.dataset.k))}
@@ -4413,10 +4413,21 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 43 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 44 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
-  m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)}}
+  m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
+  m.querySelector("#s-guide").onclick=()=>{closeModal();setTimeout(openGuide,120)}}
+function openGuide(){const sec=(t,items)=>`<div class="sec-h" style="margin-top:14px"><span>${t}</span></div><ul style="margin:6px 0 0;padding-left:20px;display:grid;gap:6px">${items.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  modal(`<div class="intro"><h2>Guide</h2><div class="sub">Så funkar Resfeber.</div>
+  ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Samla erfarenhet (XP) och stig i graderna tills du blir <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Nya världsdelar låses upp en i taget när du får mer XP: Europa, Nordamerika, Asien, Afrika, Sydamerika och Oceanien."])}
+  ${sec("Gå runt i staden",["Tryck på kartan, håll fingret mot den eller dra i <b>spaken</b> för att gå.","Hus reser sig ur marken när du kommer nära. Gå in i cirkeln framför ett hus för att gå in.","En <b>grön bock</b> betyder att du är klar med stället."])}
+  ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
+  ${sec("Energi och natt",["Energin sjunker när tiden går. Tar den slut går du långsamt, och svimmar du blir det dyrt.","Sov på hotell eller drick en energidryck från väskan.","På natten (20–06:30) kan en <b>ficktjuv på elsparkcykel</b> dyka upp. Han står still en kort stund och jagar dig sedan. Fly in på ett <b>öppet</b> ställe. Med snabba skor springer du ifrån honom."])}
+  ${sec("Saker på gatan",["<b>Mynt</b> ligger på marken varje dag.","Varje stad har en <b>tidning</b> med ett tips och en vilsen <b>turist</b> som behöver hjälp."])}
+  ${sec("Resa",["Gå till <b>flygplatsen</b>, <b>tågstationen</b> eller <b>hamnen</b>. Kartan visar världsdelen du är i. Tryck på en stad för att resa dit.","Tågen och båtarna går bara dit spåren och vattnet når."])}
+  ${sec("Knapparna",["⚙️ Inställningar och den här guiden · 👜 Väskan med pengar, foton, certifikat och uppdrag · 🔊 Ljud · 🥤 Energidryck · 🗺️ Stadskarta (om du har en)."])}
+  <button class="btn primary" type="button" id="g-ok" style="margin-top:16px">Tack, nu kör vi!</button></div>`,{center:true}).querySelector("#g-ok").onclick=closeModal}
 $("setbtn").onclick=openSettings;
 /* ================= Boot ================= */
 function intro(saved){
