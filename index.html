@@ -2672,11 +2672,15 @@ function drawPaperMap(g,c,m,wd,now,vb){
   // shorelines drawn last over the paper so they read like ink
   g.strokeStyle=INK;g.lineWidth=2;if(m.bg==="water")for(const q of m.land){pth(q);g.stroke()}else for(const q of m.water){pth(q);g.stroke()}
   const names=streetNames(c),line=(a,b,w,col)=>{g.strokeStyle=col;g.lineWidth=w;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()};
-  g.strokeStyle=INK;g.lineWidth=7;for(const pts of m.deco){g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
-  g.strokeStyle=STREET;g.lineWidth=5;for(const pts of m.deco){g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
   for(const s of names)line(m.nodes[s.u],m.nodes[s.v],23,INK);
-  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],19,STREET);g.lineCap="butt";for(const s of names)if(s.main)line(m.nodes[s.u],m.nodes[s.v],19,MAIN);g.lineCap="round";
-  {const deg={};for(const s of names)if(s.main){deg[s.u]=(deg[s.u]||0)+1;deg[s.v]=(deg[s.v]||0)+1}g.fillStyle=MAIN;for(const k in deg)if(deg[k]>1){const q=m.nodes[k];g.beginPath();g.arc(q[0],q[1],9.5,0,7);g.fill()}}
+  for(const s of names)line(m.nodes[s.u],m.nodes[s.v],19,STREET);for(const s of names)if(s.main)line(m.nodes[s.u],m.nodes[s.v],19,MAIN);
+  // bridges: a wooden deck with railings, only where the street is over water, so they end at the shore
+  {const br=names.filter(s=>s.b);if(br.length){g.save();g.beginPath();
+    if(m.bg==="water"){g.rect(-50,-50,m.w+100,m.h+100);for(const q of m.land){q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath()}g.clip("evenodd")}
+    else{for(const q of m.water){q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath()}g.clip()}
+    g.lineCap="butt";for(const s of br)line(m.nodes[s.u],m.nodes[s.v],23,INK);for(const s of br)line(m.nodes[s.u],m.nodes[s.v],19,"#d8c39a");
+    g.strokeStyle="rgba(27,40,56,.35)";g.lineWidth=1;for(const s of br){const a=m.nodes[s.u],b=m.nodes[s.v],L=dist2(a,b),ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;g.beginPath();for(let t=3;t<L;t+=5){const x=a[0]+ux*t,y=a[1]+uy*t;g.moveTo(x-uy*9,y+ux*9);g.lineTo(x+uy*9,y-ux*9)}g.stroke()}
+    g.restore();g.lineCap="round"}}
   // street names printed along the streets
   g.fillStyle=INK;g.textAlign="center";g.textBaseline="middle";
   const used=new Set(m.pois.map(p=>p.node)),runs=[];
@@ -4389,7 +4393,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 47 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 48 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
