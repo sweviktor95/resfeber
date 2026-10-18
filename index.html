@@ -1299,27 +1299,59 @@ function sthlmMap(){
     {type:"info",n:"Strandvägen",node:"strand",t:"Strandvägen byggdes ut inför Stockholmsutställningen 1897 och kantas av påkostade stenpalats. Längs kajen ligger gamla skärgårdsbåtar förtöjda."}];
   return {w:(18.102-18.048)*56900*SK,h:(59.336-59.316)*111320*SK,bg:"water",land,parks,deco,blocks:[],water:[],labels,nodes,E,pois,start:"cen"};
 }
+/* each city's own shape: rivers and canals through town (crossed by bridges), lagoons, and how old and crooked the streets are */
+const PROF={
+ par:{jit:.25,rivers:[{pts:[[-.1,.44],[.22,.5],[.48,.62],[.74,.55],[1.1,.47]],w:40}]},
+ rom:{jit:.55,rivers:[{pts:[[.36,-.1],[.28,.22],[.42,.44],[.3,.68],[.38,1.1]],w:34}]},
+ bln:{jit:.2,rivers:[{pts:[[-.1,.42],[.3,.47],[.56,.38],[1.1,.5]],w:26}]},
+ cai:{jit:.35,rivers:[{pts:[[.36,-.1],[.4,.5],[.33,1.1]],w:62}]},
+ ven:{jit:.3,lagoon:1,allBridges:1,rivers:[{pts:[[-.1,.36],[.24,.36],[.36,.5],[.43,.64],[.6,.7],[1.1,.64]],w:30},{pts:[[-.1,.262],[.3,.262]],w:11},{pts:[[.55,.262],[1.1,.262]],w:11},{pts:[[-.1,.535],[.3,.535]],w:11},{pts:[[.66,.535],[1.1,.535]],w:11}]},
+ nyc:{jit:0,rivers:[{pts:[[.02,-.1],[.03,1.1]],w:64},{pts:[[.985,-.1],[.97,1.1]],w:64}]},
+ ist:{jit:.5,rivers:[{pts:[[1.1,.36],[.72,.3],[.45,.24]],w:34}]},
+ sel:{jit:.2,rivers:[{pts:[[-.1,.74],[.5,.68],[1.1,.76]],w:44}]},
+ agr:{jit:.35,rivers:[{pts:[[.86,-.1],[.8,.5],[.9,1.1]],w:42}]},
+ kyo:{jit:.15,rivers:[{pts:[[.62,-.1],[.64,1.1]],w:22}]},
+ tyo:{jit:.3,rivers:[{pts:[[.78,-.1],[.74,.4],[.8,.7]],w:24}]},
+ mel:{jit:.1,rivers:[{pts:[[-.1,.6],[.5,.56],[1.1,.66]],w:24}]},
+ chi:{jit:0,rivers:[{pts:[[-.1,.3],[.58,.32],[.6,.62]],w:22}]},
+ rak:{jit:1},znz:{jit:.85},cus:{jit:.5},lpb:{jit:.5},ath:{jit:.45},hav:{jit:.35},ctg:{jit:.45},bcn:{jit:.3},dkr:{jit:.3},add:{jit:.35},tnr:{jit:.5},
+ was:{jit:0},yyz:{jit:0},lax:{jit:.05},per:{jit:.05},bue:{jit:0},scl:{jit:.1}};
 function genMap(c){
   const R=rng(hash(c.id+"walk")),W=780,H=660,cols=7,rows=7,nodes={},grid={},L=LAY[c.id]||{},side=c.port&&L.w!=="none"?(L.w||"S"):null;
+  const PF=PROF[c.id]||{},JIT=PF.jit!=null?PF.jit:.15;
   const colJ=Array.from({length:cols},()=>(R()-.5)*30),rowJ=Array.from({length:rows},()=>(R()-.5)*22);
   const ph=R()*6,amp=20+R()*22,wob=u=>Math.sin(u*.007+ph)*amp+Math.sin(u*.019+ph*2)*12;
-  const isWater=(x,y,mg=0)=>side==="S"?y>H*.84+wob(x)-mg:side==="N"?y<H*.16+wob(x)+mg:side==="E"?x>W*.84+wob(y)-mg:side==="W"?x<W*.16+wob(y)+mg:false;
-  for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const x=70+i*(W-140)/(cols-1)+colJ[i]*.7,y=60+j*(H-120)/(rows-1)+rowJ[j]*.7;
-    if(isWater(x,y,45))continue;const k=`n${i}_${j}`;nodes[k]=[x,y];grid[i+","+j]=k}
-  let E=[];for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const a=grid[i+","+j];if(!a)continue;const r=grid[(i+1)+","+j],d=grid[i+","+(j+1)];if(r)E.push([a,r]);if(d)E.push([a,d])}
+  // rivers and canals as smooth centre lines
+  const RIV=(PF.rivers||[]).map(rv=>{const P=rv.pts.map(([fx,fy])=>[fx*W,fy*H]),out=[];for(let k=0;k<P.length-1;k++){const p0=P[Math.max(0,k-1)],p1=P[k],p2=P[k+1],p3=P[Math.min(P.length-1,k+2)];
+      for(let s=0;s<12;s++){const t=s/12,t2=t*t,t3=t2*t;out.push([0,1].map(d=>.5*((2*p1[d])+(-p0[d]+p2[d])*t+(2*p0[d]-5*p1[d]+4*p2[d]-p3[d])*t2+(-p0[d]+3*p1[d]-3*p2[d]+p3[d])*t3)))}}out.push(P[P.length-1]);
+    for(const q of out){q[0]+=Math.sin(q[1]*.03+ph)*3}return {pts:out,w:rv.w}});
+  const rivD=(x,y)=>{let best=1e9;for(const rv of RIV)for(let k=0;k<rv.pts.length-1;k++)best=Math.min(best,segDist([x,y],rv.pts[k],rv.pts[k+1])-rv.w/2);return best};
+  const lagoon=(x,y,mg)=>PF.lagoon&&(x<34+wob(y)*.4+mg||x>W-34-wob(y+99)*.4-mg||y<30+wob(x)*.3+mg||y>H-30-wob(x+50)*.3-mg);
+  const isWater=(x,y,mg=0)=>(PF.lagoon?false:side==="S"?y>H*.84+wob(x)-mg:side==="N"?y<H*.16+wob(x)+mg:side==="E"?x>W*.84+wob(y)-mg:side==="W"?x<W*.16+wob(y)+mg:false)||rivD(x,y)<Math.min(mg,14)||lagoon(x,y,Math.min(mg,10));
+  const rivGap={};for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const x=70+i*(W-140)/(cols-1)+colJ[i]*.7+(R()-.5)*JIT*34,y=60+j*(H-120)/(rows-1)+rowJ[j]*.7+(R()-.5)*JIT*28;
+    if(isWater(x,y,45)){if(rivD(x,y)<14&&!lagoon(x,y,0))rivGap[i+","+j]=1;continue}const k=`n${i}_${j}`;nodes[k]=[x,y];grid[i+","+j]=k}
+  const wetEdge=(a,b)=>{const A=nodes[a],B=nodes[b];for(let t=.05;t<1;t+=.05)if(isWater(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t))return true;return false};
+  let E=[];for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const a=grid[i+","+j];if(!a)continue;const r=grid[(i+1)+","+j],d=grid[i+","+(j+1)];
+    for(const o of [r,d])if(o){if(wetEdge(a,o)){if(RIV.length)E.push([a,o,1])}else E.push([a,o])}
+    // a river took the nodes in between: span it with a bridge
+    for(const [di,dj] of [[1,0],[0,1]]){if(grid[(i+di)+","+(j+dj)])continue;let s=1;while(rivGap[(i+di*s)+","+(j+dj*s)])s++;const o=grid[(i+di*s)+","+(j+dj*s)];if(s>1&&o&&s<=3)E.push([a,o,1])}}
   const connected=es=>{const adj={};for(const [u,v] of es){(adj[u]=adj[u]||[]).push(v);(adj[v]=adj[v]||[]).push(u)}const ks=Object.keys(nodes),seen=new Set([ks[0]]),st=[ks[0]];
     while(st.length){const u=st.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);st.push(v)}}return seen.size===ks.length};
+  for(const e of shuffle(E.filter(x=>x[2])).slice(0,PF.allBridges?0:Math.floor(E.filter(x=>x[2]).length*.4))){const t=E.filter(x=>x!==e);if(connected(t))E=t}
   for(const e of shuffle(E.filter(([a,b])=>a.split("_")[1]!==b.split("_")[1])).slice(0,Math.floor(E.length*.1))){const t=E.filter(x=>x!==e);if(connected(t))E=t}
   const parks=[],doors=[],spare=[];
   for(let i=0;i<cols-1;i++)for(let j=0;j<rows-1;j++){const q=[grid[i+","+j],grid[(i+1)+","+j],grid[(i+1)+","+(j+1)],grid[i+","+(j+1)]];if(q.some(k=>!k)||R()>.16)continue;
-    const pts=q.map(k=>nodes[k]),cx=pts.reduce((a,p)=>a+p[0],0)/4,cy=pts.reduce((a,p)=>a+p[1],0)/4;parks.push(pts.map(([x,y])=>[x+(cx-x)*.18,y+(cy-y)*.22]))}
-  const water=[];if(side){const pts=[];for(let u=-300;u<=(side==="S"||side==="N"?W:H)+300;u+=40){const v=side==="S"?H*.84:side==="N"?H*.16:side==="E"?W*.84:W*.16;pts.push(side==="S"||side==="N"?[u,v+wob(u)]:[v+wob(u),u])}
+    const pts=q.map(k=>nodes[k]),cx=pts.reduce((a,p)=>a+p[0],0)/4,cy=pts.reduce((a,p)=>a+p[1],0)/4;if(isWater(cx,cy,30))continue;parks.push(pts.map(([x,y])=>[x+(cx-x)*.18,y+(cy-y)*.22]))}
+  const water=[];if(side&&!PF.lagoon){const pts=[];for(let u=-300;u<=(side==="S"||side==="N"?W:H)+300;u+=40){const v=side==="S"?H*.84:side==="N"?H*.16:side==="E"?W*.84:W*.16;pts.push(side==="S"||side==="N"?[u,v+wob(u)]:[v+wob(u),u])}
     const far={S:[[W+300,H+300],[-300,H+300]],N:[[W+300,-300],[-300,-300]],E:[[W+300,H+300],[W+300,-300]],W:[[-300,H+300],[-300,-300]]}[side];
     water.push(side==="E"||side==="W"?[...pts,...far]:[...pts,...far])}
+  for(const rv of RIV){const L=[],Rr=[];rv.pts.forEach((q,k)=>{const a=rv.pts[Math.max(0,k-1)],b=rv.pts[Math.min(rv.pts.length-1,k+1)],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy)||1,ox=-dy/n*rv.w/2,oy=dx/n*rv.w/2;L.push([q[0]+ox,q[1]+oy]);Rr.push([q[0]-ox,q[1]-oy])});water.push([...L,...Rr.reverse()])}
+  if(PF.lagoon){const fr=[];for(let x=-40;x<=W+40;x+=20)fr.push([x,30+wob(x)*.3]);water.push([...fr,[W+40,-60],[-40,-60]]);const fb=[];for(let x=-40;x<=W+40;x+=20)fb.push([x,H-30-wob(x+50)*.3]);water.push([...fb,[W+40,H+60],[-40,H+60]]);
+    const fl=[];for(let y=-40;y<=H+40;y+=20)fl.push([34+wob(y)*.4,y]);water.push([...fl,[-60,H+40],[-60,-40]]);const fr2=[];for(let y=-40;y<=H+40;y+=20)fr2.push([W-34-wob(y+99)*.4,y]);water.push([...fr2,[W+60,H+40],[W+60,-40]])}
   const inPk=(x,y)=>parks.some(q=>pip([x,y],q));
-  E=E.flatMap(([a,b])=>{const A=nodes[a],B=nodes[b];if(Math.abs(A[1]-B[1])>Math.abs(A[0]-B[0]))return [[a,b]];
-    const k="d"+a.slice(1),mx=(A[0]+B[0])/2,my=(A[1]+B[1])/2;nodes[k]=[mx,my];
-    if(!isWater(mx,my-55,0))(!inPk(mx,my-30)&&my>70?doors:spare).push(k);return [[a,k],[k,b]]});
+  E=E.flatMap(([a,b,br])=>{const A=nodes[a],B=nodes[b];if(br||Math.abs(A[1]-B[1])>Math.abs(A[0]-B[0]))return [br?[a,b,1]:[a,b]];
+    let k="d"+a.slice(1);if(nodes[k])k="d"+b.slice(1)+"_w";if(nodes[k])return [[a,b]];const mx=(A[0]+B[0])/2,my=(A[1]+B[1])/2;nodes[k]=[mx,my];
+    if(!isWater(mx,my-55,0)&&!isWater(mx,my-30,0)&&!isWater(mx,my,8))(!inPk(mx,my-30)&&my>70?doors:spare).push(k);return [[a,k],[k,b]]});
   const keys=doors.length>=24?doors.slice():doors.concat(spare),used=new Set(),take=k=>{used.add(k);return k};
   const near=t=>{let best=null,bd=1e9;for(const k of keys){if(used.has(k))continue;const d=dist2(nodes[k],[t[0]*W,t[1]*H])+([...used].some(u=>dist2(nodes[u],nodes[k])<110)?400:0);if(d<bd){bd=d;best=k}}return take(best||keys.find(k=>!used.has(k)))};
   const pickRand=()=>{const free=keys.filter(k=>!used.has(k)),far=free.filter(k=>[...used].every(u=>dist2(nodes[k],nodes[u])>105)),pool=far.length?far:free;return take(pool[Math.floor(R()*pool.length)]||keys[0])};
@@ -1341,6 +1373,7 @@ function genMap(c){
   if(side){const WK=["ferry","ship","harbor","pier","paddle","ferryboat","waterfront"],dir={S:[0,1],N:[0,-1],E:[1,0],W:[-1,0]}[side];
     for(const bp of pois.filter(p=>(p.type==="travel"&&p.mode==="boat")||(p.type!=="travel"&&WK.includes(String(poiKind(p,c)).split(":")[0])))){const d=nodes[bp.node];let t=0;
       while(t<400&&!isWater(d[0]+dir[0]*t,d[1]+dir[1]*t))t+=2;const clearLine=Object.entries(nodes).every(([kk,q])=>kk===bp.node||segDist(q,d,[d[0]+dir[0]*t,d[1]+dir[1]*t])>26);if(t>40&&t<400&&clearLine){const k="p"+bp.node.slice(1);if(nodes[k])continue;nodes[k]=[d[0]+dir[0]*(t-12),d[1]+dir[1]*(t-12)];E.push([bp.node,k]);bp.node=k}}}
+  {const seen=new Set();for(const p of pois){if(seen.has(p.node)||!nodes[p.node]){const free=[...new Set([...doors,...spare])].filter(k=>!pois.some(q=>q.node===k)&&!seen.has(k));if(free.length)p.node=free[Math.floor(R()*free.length)]}seen.add(p.node)}}
   const start=(pois.find(p=>p.type==="travel"&&p.mode==="train")||pois[0]).node;
   return {isWater:(x,y)=>isWater(x,y),w:W,h:H,bg:"land",land:[],parks,deco:[],blocks:[],water,labels:[],nodes,E,pois,start};
 }
@@ -4706,7 +4739,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 69 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 70 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
@@ -4756,7 +4789,7 @@ function intro(saved){
   wireHand(m);m.querySelector("#go").onclick=()=>{if(!getHand())setHand("right");closeModal()};
 }
 const saved=load();if(saved)S=saved;else newGame();
-if(S.film==null)S.film=12;if(S.mapv!==10){S.xy={};S.found2={};S.hub=null;S.mapv=10;if(!CITIES.includes(BY[S.cur]))S.cur="sto";S.missions=S.missions.filter(id=>CITIES.includes(BY[id]));fillMissions();save()}
+if(S.film==null)S.film=12;if(S.mapv!==11){S.xy={};S.found2={};S.hub=null;S.mapv=11;if(!CITIES.includes(BY[S.cur]))S.cur="sto";S.missions=S.missions.filter(id=>CITIES.includes(BY[id]));fillMissions();save()}
 render();setSoundUI();intro(!!saved);w3Start();
 </script>
 
