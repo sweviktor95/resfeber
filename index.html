@@ -2244,7 +2244,7 @@ const ART={dig:[40,22],aquarium:[42,28],lodge:[38,30],museum:[44,30],cinema:[34,
   church:[30,50],parliament:[60,30],park:[40,25],harbor:[40,28],dome:[50,45],temple:[50,35],tower:[30,62],pagoda:[30,50],monument:[18,32],museum:[50,30]};
 const STO_KIND={cen:"station",sergel:"restaurant",stort:"cafe",slussen:"kiosk",grand:"hotel",hostel:"ship",vasa:"vasa",sthus:"cityhall",slott:"palace",riddarh:"church",helge:"parliament",kungstr:"park"};
 const MAIN_SIGHT={nordic:"church",gable:"church",euro:"dome",old:"temple",modern:"tower",asia:"pagoda"};
-function poiKind(p,c){if(p.type==="travel")return {plane:"airport",train:"station",boat:"ferry"}[p.mode]||"station";if(p.type==="job")return JOB_PLACE[p.job].kind;if(p.type==="club")return "club";if(p.type==="infok")return "infokiosk";if(p.type==="hostel"&&c.id!=="sto")return p.n==="Motellet"?"motel":"hostel";if(c.id==="sto"&&STO_KIND[p.node])return STO_KIND[p.node];
+function poiKind(p,c){if(c.id!=="sto"&&LM_MAP[c.id]&&(p.type==="sight"||p.type==="info")){const [ss,ff]=LM_MAP[c.id],k=p.type==="sight"?ss[p.i]:ff[(FACTS[c.id]||[]).findIndex(f=>f[0]===p.n)];if(k)return k}if(p.type==="travel")return {plane:"airport",train:"station",boat:"ferry"}[p.mode]||"station";if(p.type==="job")return JOB_PLACE[p.job].kind;if(p.type==="club")return "club";if(p.type==="infok")return "infokiosk";if(p.type==="hostel"&&c.id!=="sto")return p.n==="Motellet"?"motel":"hostel";if(c.id==="sto"&&STO_KIND[p.node])return STO_KIND[p.node];
   return {travel:"station",lux:"hotel",hostel:"hostel",job:"office",cafe:"cafe",pub:"restaurant",kiosk:"kiosk",info:c.id==="sto"?"harbor":"monument"}[p.type]||[MAIN_SIGHT[c.st]||"dome","monument","museum"][p.i]||"museum"}
 const ROOFS={nordic:["#8a3b2e","#3d3a3a","#5c7a63","#a0522d","#6b3a2e"],gable:["#5d4a3c","#7a4b35","#4a3f3a"],euro:["#9c5b3c","#6f6a66","#b5703f","#8a8580"],
   modern:["#9aa3ad","#7d868f","#b8c0c8","#a7b0ba"],old:["#d6b98c","#c9a675","#e0c79e","#cfae80"],asia:["#a23b2c","#7b6d5d","#9aa3ad","#8c4a3a"]};
@@ -2384,7 +2384,7 @@ function buildModel(kind,c){
     door(w=.14,h=.42,col="#4a3020",u=.5){return [[u-w/2,0,u+w/2,h,col]]},
     _poly:(pts,n,col)=>poly(pts,n,col)
   };
-  (MODELS[kind]||MODELS.museum)(B,wall,c);
+  {const [base,vr]=String(kind).split(/:(.*)/s);if(LMK[base])LMK[base](B,vr);else (MODELS[kind]||MODELS.museum)(B,wall,c)}
   // render
   const P=p=>[dot(p,VR)*SPR,-dot(p,VU)*SPR];let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
   const grow=p=>{const [x,y]=P(p);mnx=Math.min(mnx,x);mny=Math.min(mny,y);mxx=Math.max(mxx,x);mxy=Math.max(mxy,y)};
@@ -2481,6 +2481,195 @@ function poly4(B,pts,col){const u=[pts[1][0]-pts[0][0],pts[1][1]-pts[0][1],pts[1
 function temple(B,col,w,d,h){B.box(-w-2,-4,0,w+2,d+2,1.5,"#bfb59f");B.box(-w,0,1.5,w,d,h,col,{front:B.door(.1,.5,"#5a3b2a"),side:B.win(4,1,"#8fa7bf",.3,.8)});
   for(let i=0;i<=8;i++){const x=-w+1+i*(2*w-2)/8;B.prism(x,-2.4,.9,1.5,h,8,"#f4efe2")}B.box(-w-1,-4,h,w+1,d+1,h+1.5,shadeC(col,1.05));B.gable(-w-1,-4,w+1,d+1,h+1.5,6,shadeC(col,.95))}
 
+/* ================= Landmarks: every sight and fact spot gets a model shaped like the real thing ================= */
+const LMK={
+  // tall lattice tower (Eiffel)
+  lattice:(B,v)=>{const col=v||"#7a5a3c";for(const [x,y] of [[-13,1],[13,1],[-13,23],[13,23]])B.line([x,y,0],[x*.12,12+(y-12)*.12,44],1.3,col);
+    B.box(-9,3,14,9,21,16,col);B.box(-4.5,7.5,30,4.5,16.5,31.5,col);for(const z of [6,22,38])for(const s of [-1,1])B.line([-11+z*.18,12+s*(10-z*.2),z],[11-z*.18,12+s*(10-z*.2),z],.5,col);
+    B.line([0,12,44],[0,12,62],.9,col);B.sphere([0,12,63],1,"#d9a441")},
+  // clock tower with spire (Big Ben, Gamla telegraf…)
+  clocktower:(B,v)=>{const col=v||"#c9a86a";B.box(-18,6,0,4,18,12,col,{front:B.win(6,2,"#8fa7bf",.2,.85)});B.box(4,6,0,13,15,44,col,{front:B.win(2,6,"#8fa7bf",.05,.7)});
+    B.disc(8.5,5.9,37,3.2,"#fbf8f1");B.line([8.5,5.8,37],[8.5,5.8,39.4],.35,"#1b2838");B.line([8.5,5.8,37],[10,5.8,37],.35,"#1b2838");B.hip(3.5,5.5,13.5,15.5,44,12,"#3d4a5a",.6)},
+  // two towers with a road between (Tower Bridge)
+  bascule:(B,v)=>{const col=v||"#d8cbb0";for(const x of [-18,10]){B.box(x,4,0,x+8,12,30,col,{front:B.win(2,4,"#8fa7bf",.2,.9)});for(const dx of [0,6])B.hip(x+dx-.5,3.5,x+dx+2.5,6.5,30,6,"#5a6f88",.2);B.hip(x-.5,3.5,x+8.5,12.5,30,4,"#5a6f88",2)}
+    B.box(-10,6,8,10,10,10,"#6d86a3");B.box(-10,6,24,10,10,26,"#6d86a3");B.line([-28,8,10],[-18,8,26],.8,"#6d86a3");B.line([28,8,10],[18,8,26],.8,"#6d86a3");B.box(-30,6,6,30,10,8,"#5a6f88")},
+  // suspension bridge (Golden Gate, Capilano)
+  suspension:(B,v)=>{const col=v||"#c0442b";for(const x of [-14,14]){B.box(x-2,4,0,x+2,6,34,col);B.box(x-2,10,0,x+2,12,34,col);B.box(x-2,4,30,x+2,12,32,col);B.box(x-2,4,18,x+2,12,19.5,col)}
+    B.box(-32,4,8,32,12,10,col);for(const y of [5,11]){B.line([-32,y,12],[-14,y,34],.5,col);B.line([-14,y,34],[0,y,13],.5,col);B.line([0,y,13],[14,y,34],.5,col);B.line([14,y,34],[32,y,12],.5,col)}},
+  // steel arch bridge (Harbour Bridge)
+  archbridge:(B,v)=>{const col=v||"#7d868f";const P=k=>{const a=Math.PI*k/12;return [-28*Math.cos(a),8,4+26*Math.sin(a)]};for(let k=0;k<12;k++){B.line(P(k),P(k+1),1.4,col);const p=P(k);if(k>0)B.line(p,[p[0],8,12],.35,col)}
+    B.box(-34,4,10,34,12,12,col);for(const x of [-34,28])B.box(x,4,0,x+6,12,20,"#cfc3a6")},
+  // stone bridge with an arch (Rialto, Bridge of Sighs, Harbour bridges in small towns)
+  stonebridge:(B,v)=>{const col=v||"#e2d5b8";B.box(-22,2,0,-6,14,6,col);B.box(6,2,0,22,14,6,col);B.box(-6,2,4,6,14,9,col);B.box(-6,1.9,0,6,2,4,"#57b4e6");
+    B.box(-10,3,9,10,13,15,shadeC(col,1.05),{front:B.win(5,1,"#8fa7bf",.2,.8)});B.gable(-11,2,11,14,15,4,"#a8452f")},
+  // triumphal arch / gate (Arc de Triomphe, Brandenburger Tor, Gateway of India, Självständighetsporten)
+  arch:(B,v)=>{const col=v||"#e2d5b8";B.box(-15,4,0,-5,16,22,col);B.box(5,4,0,15,16,22,col);B.box(-15,4,14,15,16,26,col,{front:[[.1,.2,.9,.4,shadeC(col,.85)]]});B.box(-15.5,3.5,26,15.5,16.5,28,shadeC(col,.92))},
+  colgate:(B,v)=>{const col=v||"#e2d5b8";for(let i=0;i<6;i++)B.prism(-15+i*6,8,1.1,0,18,8,col);B.box(-17,5,18,17,11,22,col);B.box(-6,6,22,6,10,26,col);B.line([0,8,26],[0,8,30],.6,"#5a6f88");B.sphere([0,8,31],1.4,"#7d9a8c")},
+  // round arena (Colosseum)
+  arena:(B,v)=>{const col=v||"#d6b98c",n=18;for(let k=0;k<n;k++){const a=k/n*6.283,b=(k+1)/n*6.283,h=k<11?20:12+k%3*2;
+      const p=t=>[Math.cos(t)*24,14+Math.sin(t)*18];const [ax,ay]=p(a),[bx,by]=p(b);B._poly([[ax,ay,0],[bx,by,0],[bx,by,h],[ax,ay,h]],[(ax+bx)/2,(ay+by)/2-14,0],col);
+      for(const z of [3,9,15])if(z<h-2)B._poly([[ax+(bx-ax)*.3,ay+(by-ay)*.3-.05,z],[ax+(bx-ax)*.7,ay+(by-ay)*.7-.05,z],[ax+(bx-ax)*.7,ay+(by-ay)*.7-.05,z+3.4],[ax+(bx-ax)*.3,ay+(by-ay)*.3-.05,z+3.4]],[(ax+bx)/2,(ay+by)/2-14,0],"#6b5a44")}},
+  // ruins: broken columns on a platform (Agora, Forum)
+  ruins:(B,v)=>{const col=v||"#e6d8b8";B.box(-24,0,0,24,18,2,"#bfb59f");[[-18,4,14],[-12,4,9],[-6,4,14],[0,4,6],[6,4,14],[12,4,11],[18,4,14],[-18,14,7],[18,14,10]].forEach(([x,y,h])=>B.prism(x,y,1.3,2,2+h,8,col));B.box(-20,2.7,16,-4,5.3,18,col);B.box(-6,14,2,4,16,3,col)},
+  // greek temple on a hill (Parthenon)
+  parthenon:(B,v)=>{B.box(-28,-2,0,28,26,6,"#b8a98a");temple2(B,v||"#efe2c4",22,18,10,6)},
+  // classical columned hall (museums, capitols, palaces)
+  hall:(B,v)=>{temple2(B,v||"#efe2c4",24,18,13,0)},
+  capitol:(B,v)=>{const col=v||"#f4f1e8";B.box(-32,0,0,32,22,14,col,{front:B.win(12,2,"#8fa7bf",.2,.85)});temple2(B,col,9,6,13,0,-2);B.prism(0,11,9,14,22,14,col);B.sphere([0,11,24],8.5,col);B.prism(0,11,1.6,31,36,8,col);B.sphere([0,11,37],1.3,"#d9a441")},
+  whitehouse:(B,v)=>{const col=v||"#f6f4ee";B.box(-28,4,0,28,20,13,col,{front:B.win(10,2,"#8fa7bf",.2,.85)});for(let i=0;i<6;i++)B.prism(-7.5+i*3,1,.8,0,13,8,col);B.prism(0,4,9,0,13,14,col,col);B.box(-29,3,13,29,21,14.5,shadeC(col,.95));B.flag(0,12,14.5,8,"#2648c9")},
+  // domed church / cathedral
+  domechurch:(B,v)=>{const col=v||"#e8dcc4";B.box(-20,0,0,20,30,16,col,{front:[...B.win(5,2,"#8fa7bf",.25,.85),...B.door(.14,.45,"#5a3b2a")]});B.gable(-21,0,21,8,16,7,shadeC(col,.95),"y");
+    B.prism(0,16,9,16,24,12,col);B.sphere([0,16,26],9.5,v?"#5a6f88":"#7d9a8c");B.prism(0,16,1.6,34,38,8,col);B.line([0,16,38],[0,16,43],.4,"#d9a441")},
+  // gothic cathedral with two towers (Notre-Dame, Trefaldighet)
+  twintower:(B,v)=>{const col=v||"#d8cbb0";B.box(-14,8,0,14,40,18,col,{side:B.win(5,1,"#7f9cff",.3,.8)});B.gable(-15,8,15,40,18,10,"#5a6f88","y");
+    for(const x of [-14,6]){B.box(x,0,0,x+8,8,34,col,{front:[...B.win(1,3,"#3d3a3a",.35,.9)]});B.box(x-.5,-.5,34,x+8.5,8.5,35,shadeC(col,.9))}B.box(-6,0,0,6,8,24,col,{front:[[.25,0,.75,.4,"#5a3b2a"]]});B.disc(0,-.1,17,4,"#7f9cff")},
+  // spired cathedral (Sagrada Família)
+  spires:(B,v)=>{const col=v||"#c9b48a";B.box(-22,4,0,22,30,14,col,{front:B.win(6,2,"#7f9cff",.3,.85)});for(const [x,y,h] of [[-16,2,40],[-8,2,48],[8,2,48],[16,2,40],[0,22,62],[-12,26,36],[12,26,36]]){B.prism(x,y,2.6,0,h*.75,8,col);B.cone(x,y,2.6,h*.75,h*.25,8,shadeC(col,.9));B.sphere([x,y,h+1],1.2,"#e9c46a")}},
+  // stepped concrete church tower (Hallgrímskirkja)
+  organ:(B,v)=>{const col=v||"#e4e2dc";for(let i=0;i<5;i++){const w=4+i*3,h=44-i*8;B.box(-w-2,6,0,-w+1,14,h,col);B.box(w-1,6,0,w+2,14,h,col)}B.box(-3,6,0,3,14,52,col,{front:B.win(1,5,"#8fa7bf",.3,.9)});B.cone(0,10,3.8,52,14,4,"#9aa3ad");B.box(-14,14,0,14,34,10,col);B.gable(-14,14,14,34,10,6,"#9aa3ad","y")},
+  // mosque with dome and minarets
+  mosque:(B,v)=>{const col=v||"#e8dcc4";B.box(-20,4,0,20,28,12,col,{front:[...B.win(6,1,"#8fa7bf",.3,.75),...B.door(.14,.5,"#5a3b2a")]});B.prism(0,16,10,12,16,16,col);B.sphere([0,16,18],10,"#8a9aa8");B.line([0,16,28],[0,16,33],.4,"#d9a441");
+    for(const [x,y] of [[-18,2],[18,2],[-18,30],[18,30]]){B.prism(x,y,1.6,0,36,8,col);B.cone(x,y,1.8,36,6,8,"#8a9aa8")}for(const x of [-12,12])B.sphere([x,10,13],4,"#8a9aa8")},
+  // pyramid(s) and sphinx
+  pyramids:(B)=>{const pyr=(cx,cy,s,h)=>{const c=[[cx-s,cy-s,0],[cx+s,cy-s,0],[cx+s,cy+s,0],[cx-s,cy+s,0]],t=[cx,cy,h];for(let i=0;i<4;i++){const a=c[i],b=c[(i+1)%4],n=[(a[0]+b[0])/2-cx,(a[1]+b[1])/2-cy,s*.8];B._poly([a,b,t],n,"#d9b26e")}};pyr(-8,20,16,28);pyr(18,12,10,18);pyr(-26,8,6,11)},
+  sphinx:(B)=>{B.box(-20,6,0,14,16,7,"#d1ac6b");B.box(-24,4,0,-12,8,4,"#d1ac6b");B.box(10,4,4,18,16,15,"#d1ac6b");B.box(9,3,13,19,17,18,"#c2a05f");B.box(11,2,18,17,10,22,"#3d6b8a");B.box(12,1.8,13,16,4,18,"#c79a55")},
+  stepped:(B,v)=>{const col=v||"#b8875a";for(let i=0;i<5;i++){const s=24-i*4.4;B.box(-s,10-s*.7,i*6,s,10+s*.7,i*6+6,shadeC(col,1-i*.03))}B.box(-3,-6,0,3,6,24,shadeC(col,.92));B.box(-5,4,30,5,13,34,col)},
+  // statues: pedestal + figure
+  statue:(B,v)=>{const [kind,col]=(v||"liberty").split("|"),c=col||"#6fa596";B.box(-9,2,0,9,20,10,"#bfb59f");B.box(-6,5,10,6,17,18,"#cfc3a6");
+    if(kind==="christ"){B.prism(0,11,2.8,18,40,8,c);B.box(-14,9.5,34,14,12.5,37,c);B.sphere([0,11,43],2.8,c)}
+    else if(kind==="merlion"){B.prism(0,11,4,18,28,8,c);B.sphere([0,9,31],5,c);B.line([0,4,30],[0,-6,26],1.2,"#86b8d2")}
+    else if(kind==="buddha"){B.prism(0,11,9,18,26,10,c);B.prism(0,11,6,26,36,10,c);B.sphere([0,11,40],4.5,c)}
+    else if(kind==="rider"){B.box(-6,8,18,6,14,26,c);B.prism(2,11,1.8,26,34,6,c);B.sphere([2,11,36],1.8,c)}
+    else{B.prism(0,11,3.4,18,40,8,c);B.sphere([0,11,43],2.6,c);B.line([2.5,11,40],[5,11,54],1.1,c);B.sphere([5,11,55],1.3,"#e9c46a")}},
+  // skyscrapers
+  skyscraper:(B,v)=>{const [kind,col]=(v||"empire").split("|"),c=col||"#b8c0c8";
+    if(kind==="burj"){for(let i=0;i<7;i++){const s=12-i*1.6;B.box(-s,10-s,i*13,s,10+s,i*13+13,c,{front:B.win(Math.max(2,6-i),5,"#cfe2f3",.03,.98)})}B.line([0,10,91],[0,10,110],.8,c)}
+    else if(kind==="willis"){for(const [x,y,h] of [[-8,2,60],[0,2,72],[8,2,52],[-8,10,66],[0,10,80],[8,10,58]])B.box(x-4,y,0,x+4,y+8,h,"#2a3036",{front:B.win(2,14,"#5a6f88",.03,.98)});for(const x of [-2,2])B.line([x,12,80],[x,12,92],.5,"#9aa3ad")}
+    else if(kind==="mbs"){for(const x of [-16,0,16])B.box(x-5,6,0,x+5,14,46,c,{front:B.win(3,12,"#cfe2f3",.03,.98)});B._poly([[-26,4,46],[28,4,46],[28,16,46],[-26,16,46]],[0,0,1],"#3d6b4f");B.box(-26,4,46,28,16,48,"#9aa3ad")}
+    else{for(let i=0;i<4;i++){const s=14-i*3;B.box(-s,10-s*.7,i*16,s,10+s*.7,i*16+16,c,{front:B.win(Math.max(2,6-i),5,"#f6d47a",.05,.95)})}B.prism(0,10,1.4,64,74,8,c);B.line([0,10,74],[0,10,86],.5,"#9aa3ad")}},
+  // TV/observation tower with a pod (CN Tower, Skytree, N Seoul, Sky Tower)
+  needle:(B,v)=>{const c=v||"#d8d8d0";B.box(-6,6,0,6,18,4,"#9aa3ad");B.prism(0,12,2.8,4,62,6,c);B.prism(0,12,6.5,58,64,12,"#6d86a3");B.prism(0,12,5,64,66,12,c);B.prism(0,12,1.1,66,86,6,c);B.line([0,12,86],[0,12,96],.4,"#c13a2a")},
+  // observatory with domes (Griffith)
+  observatory:(B)=>{B.box(-24,4,0,24,18,10,"#f4f1e8",{front:[...B.win(6,1,"#8fa7bf",.3,.8),...B.door(.12,.5,"#5a3b2a")]});for(const [x,r] of [[0,8],[-20,4.5],[20,4.5]]){B.prism(x,11,r,10,12,12,"#f4f1e8");B.sphere([x,11,13],r,"#cfd6de")}},
+  // Asian temples
+  prang:(B,v)=>{const c=v||"#e6d8c0";B.box(-18,0,0,18,22,4,"#cfc3a6");for(let i=0;i<7;i++){const r=9-i*1.15;B.prism(0,11,r,4+i*7,4+i*7+6,8,c)}B.cone(0,11,1.2,53,10,8,"#d9a441");for(const [x,y] of [[-14,3],[14,3],[-14,19],[14,19]]){B.prism(x,y,2.4,4,16,8,c);B.cone(x,y,2,16,6,8,"#d9a441")}},
+  goldtemple:(B,v)=>{const c=v||"#e2b23a";B.box(-26,-4,0,26,4,1,"#57b4e6");B.box(-14,6,0,14,22,9,c,{front:B.win(5,1,"#5a3b2a",.3,.8)});B.hip(-17,3,17,25,9,3,"#3d3a3a",5);B.box(-10,9,12,10,19,19,c,{front:B.win(4,1,"#5a3b2a",.3,.8)});B.hip(-13,6,13,22,19,6,"#3d3a3a",3);B.sphere([0,14,26],1.4,"#e9c46a")},
+  palace_asia:(B,v)=>{const c=v||"#a23b2c";B.box(-30,0,0,30,8,3,"#e8dcc4");B.box(-24,4,3,24,22,14,c,{front:[...B.win(8,1,"#d9a441",.25,.8)]});B.hip(-28,1,28,25,14,8,v?"#e9c46a":"#d9a441",8);B.hip(-20,6,20,20,20,5,v?"#e9c46a":"#d9a441",5)},
+  toriis:(B)=>{for(let i=0;i<6;i++){const y=i*5,s=1-i*.06;for(const x of [-6*s,6*s])B.prism(x,y,.9,0,14*s,6,"#e0402a");B.box(-9*s,y-.8,13*s,9*s,y+.8,14.5*s,"#1b2838");B.box(-7*s,y-.6,10.5*s,7*s,y+.6,11.5*s,"#e0402a")}
+    for(const [x,y] of [[-14,6],[14,10],[-14,22],[14,24]])B.sphere([x,y,6],5,"#3d6b4f")},
+  bamboo:(B)=>{for(let i=0;i<34;i++){const x=-22+(i*37%44),y=(i*53%28),h=26+(i*17%14);B.prism(x,y,.7,0,h,5,"#7aa35c");B.sphere([x,y,h],2.4,"#93c070")}},
+  buddhahill:(B)=>{hill(B,0,13,30,10,"#5e8c4a");for(let i=0;i<4;i++)B.box(-8+i,0+i*1.5,10+i*1.4,8-i,4+i*1.5,11.4+i*1.4,"#cfc3a6");statueOn(B,0,14,16,"buddha","#b9b2a5")},
+  stupa:(B,v)=>{const c=v||"#f4f1e8";B.box(-16,0,0,16,24,4,"#cfc3a6");B.sphere([0,12,10],9,c);B.prism(0,12,2.4,17,22,4,"#d9a441");B.cone(0,12,2,22,12,8,"#d9a441")},
+  // nature
+  mountain:(B,v)=>{const [kind,col]=(v||"green").split("|");
+    if(kind==="table"){B.box(-34,4,0,34,26,4,"#6b8f4a");B.hip(-32,6,32,24,4,18,"#7b6d5d",8);B.box(-22,10,22,22,20,23,"#8c7d6b");for(let i=0;i<7;i++)B.sphere([-30+i*10,2,3],3.4,"#5e8c4a")}
+    else if(kind==="sugar"){B.box(-30,-2,0,30,4,1,"#57b4e6");B.prism(-12,14,13,0,14,10,"#6b7a5a");B.sphere([-12,14,20],12,"#6b7a5a");B.sphere([16,16,8],8,"#5e8c4a");B.line([4,10,24],[16,10,14],.25,"#3d3a3a");B.box(8,9,17,11,11,20,"#c13a2a")}
+    else if(kind==="uluru"){B.box(-36,0,0,36,30,1,"#d9a066");B.prism(0,15,24,1,12,16,"#c45a2c");B.sphere([0,15,9],18,"#c45a2c");for(const x of [-30,30])B.sphere([x,6,3],2.6,"#7a8a4a")}
+    else if(kind==="canyon"){for(const [x,y,h] of [[-22,10,22],[-10,18,30],[4,8,18],[16,20,26],[26,8,14]]){B.box(x-6,y-6,0,x+6,y+6,h,"#b5562e");B.box(x-6.2,y-6.2,h*.4,x+6.2,y+6.2,h*.45,"#d98a52")}}
+    else if(kind==="moon"){for(let i=0;i<14;i++){const x=-24+(i*19%48),y=(i*23%26),h=8+(i*7%14);B.cone(x,y,3.4,0,h,6,"#d8c39a")}}
+    else if(kind==="crater"){B.prism(0,14,26,0,10,16,"#7a8a5a");B.prism(0,14,18,10,12,16,"#8c9a6a","#6b8f4a");B.box(-10,12,12,10,16,12.2,"#57b4e6")}
+    else{hill(B,0,15,30,22,col||"#5e8c4a");for(let i=0;i<6;i++)B.sphere([-22+i*9,2+(i%2)*3,4],3.2,"#3d6b4f");if(kind==="cross"){B.prism(0,15,.8,22,34,4,"#f4f1e8");B.box(-4,14.5,30,4,15.5,31.5,"#f4f1e8")}if(kind==="tower")B.prism(0,15,1.6,22,40,6,"#e8dcc4")}},
+  beach:(B,v)=>{B.box(-34,-8,0,34,4,.6,"#57b4e6");B.box(-34,4,0,34,24,1,"#ecd79c");for(const [x,y,c] of [[-22,10,"#e0402a"],[-6,14,"#2648c9"],[12,9,"#e9c46a"],[26,15,"#2a9d8f"]]){B.line([x,y,1],[x,y,7],.4,"#fbf8f1");B.cone(x,y,4,6,2,8,c)}
+    for(const [x,y] of [[-30,22],[30,22],[-14,22]]){B.line([x,y,1],[x+1,y,14],.9,"#8a6a3a");for(let k=0;k<5;k++)B.line([x+1,y,14],[x+1+Math.cos(k*1.26)*5,y+Math.sin(k*1.26)*3,12],.7,"#4f8a3a")}},
+  garden:(B,v)=>{const kind=v||"park";B.box(-30,0,0,30,28,.6,"#79c05a");if(kind==="glass"){B.box(-12,8,0,12,20,10,"#cfe2f3");B.vault(-12,8,12,20,10,6,"#a9d0e6")}
+    if(kind==="supertree"){for(const [x,y,h] of [[-16,10,28],[0,6,36],[14,12,30],[-4,20,24]]){B.prism(x,y,1.4,0,h,6,"#7a4b8a");B.cone(x,y+.01,6,h,-4,10,"#c45ab0")}}
+    for(const [x,y,r] of [[-24,6,5],[-18,22,6],[22,6,5],[24,22,5.5],[6,24,4],[-6,4,4]]){B.prism(x,y,.7,0,4,6,"#6b4a2e");B.sphere([x,y,4+r*.8],r,"#4f8a3a")}
+    if(kind==="park"){B.prism(0,14,6,0,1.2,12,"#bfb59f","#86b8d2");B.prism(0,14,.6,1.2,4,6,"#cfe2f3")}
+    if(kind==="totem"){for(const [x,c] of [[-6,"#c13a2a"],[0,"#2a9d8f"],[6,"#e9c46a"]]){B.prism(x,14,1.4,0,22,6,"#8a5a3a");for(const z of [5,11,17])B.box(x-1.6,12.4,z,x+1.6,15.6,z+2.4,c)}}
+    if(kind==="giraffe"){for(const [x,y] of [[-8,12],[10,16]]){B.box(x-4,y-1.5,7,x+4,y+1.5,10,"#d99a3e");for(const dx of [-3,3])B.line([x+dx,y,0],[x+dx,y,7],.7,"#d99a3e");B.line([x+3,y,10],[x+6,y,19],1.1,"#d99a3e");B.sphere([x+6.5,y,19.5],1.4,"#c08030")}}
+    if(kind==="lemur"){for(const [x,y] of [[-6,12],[6,16]]){B.sphere([x,y,3],2.4,"#9aa3ad");B.sphere([x,y,6],1.5,"#fbf8f1");B.line([x+2,y,3],[x+6,y,10],.8,"#3d3a3a")}}},
+  forest:(B,v)=>{const dense=v==="rain";for(let i=0;i<(dense?26:16);i++){const x=-28+(i*29%56),y=(i*41%30),r=dense?5+(i%3):4+(i%3);B.prism(x,y,.8,0,5,6,"#5a3b2a");B.sphere([x,y,5+r*.8],r,i%2?"#2f6b3a":"#3d7a44")}if(v==="river")B.box(-34,12,0,34,18,.5,"#86a96a")},
+  water:(B,v)=>{const [kind]=(v||"lake").split("|");B.box(-36,-6,0,36,26,.6,kind==="two"?"#3d2a20":"#57b4e6");if(kind==="two")B.box(0,-6,0,36,26,.65,"#c9a46e");
+    B.box(-36,24,0,36,30,4,"#6b8f4a");for(let i=0;i<5;i++)B.sphere([-30+i*15,28,6],4,"#4f8a3a");
+    if(kind==="mountains"){for(const [x,h] of [[-24,26],[-6,34],[14,28],[30,22]]){B.cone(x,30,10,4,h,4,"#7b8a9a");B.cone(x,30,4,4+h*.65,h*.35,4,"#fbf8f1")}}
+    B.box(-6,4,.6,8,9,3,"#f4f1e8");B.box(-2,5,3,5,8,6,"#e8dcc4");B.line([1,6.5,6],[1,6.5,10],.4,"#3d3a3a")},
+  reef:(B)=>{B.box(-34,-4,0,34,28,.6,"#3fb4d8");for(let i=0;i<14;i++){const x=-26+(i*31%52),y=(i*43%24),c=["#e0402a","#e9c46a","#c45ab0","#f39a2b"][i%4];B.sphere([x,y,1.4],2.2+(i%3)*.6,c)}B.box(14,4,.6,30,10,4,"#fbf8f1");B.box(18,5,4,26,9,7,"#2648c9")},
+  waterfall:(B,v)=>{B.box(-34,14,0,34,30,26,"#6b5a4a");B.box(-34,14,26,34,30,28,"#5e8c4a");for(let i=0;i<8;i++)B.box(-30+i*8,13.6,2,-24+i*8,14,26,i%2?"#e6f2fb":"#bfe0f2");B.box(-34,-4,0,34,14,.6,"#57b4e6");for(let i=0;i<6;i++)B.sphere([-26+i*10,10,3],3.5,"#f2f8fc")},
+  // seaside
+  lighthouse:(B,v)=>{B.box(-14,-2,0,14,20,3,"#7b6d5d");B.box(-30,-6,0,30,-2,.5,"#57b4e6");for(let i=0;i<5;i++)B.prism(0,9,4.4-i*.4,3+i*6,9+i*6,12,i%2?"#c13a2a":"#fbf8f1");B.prism(0,9,3.2,33,37,12,"#f6d47a");B.cone(0,9,3.6,37,4,12,"#3d3a3a")},
+  pier:(B,v)=>{B.box(-36,-8,0,36,26,.6,"#57b4e6");B.box(-30,4,3,30,10,4,"#a07850");for(let i=0;i<8;i++)B.prism(-28+i*8,7,.6,0,3,4,"#7a5a3c");
+    if(v==="wheel"){for(let k=0;k<10;k++){const a=k/10*6.283;B.line([14,6.8,16],[14+Math.cos(a)*11,6.8,16+Math.sin(a)*11],.3,"#c13a2a");B.box(13+Math.cos(a)*11,6,15+Math.sin(a)*11,15+Math.cos(a)*11,7.4,17+Math.sin(a)*11,["#e9c46a","#2a9d8f","#c13a2a"][k%3])}B.line([14,6.8,4],[14,6.8,16],.6,"#c13a2a")}
+    else{B.box(-24,4,4,-8,10,10,"#e8dcc4",{front:B.win(4,1,GL,.3,.8)});B.gable(-25,3,-7,11,10,4,"#a8452f");for(const x of [4,16])B.line([x,7,4],[x,7,18],.5,"#3d3a3a")}},
+  waterfront:(B,v)=>{B.box(-36,-8,0,36,6,.6,"#57b4e6");B.box(-36,6,0,36,28,1,"#d8cbb0");for(const [x,h,c] of [[-24,18,"#9aa3ad"],[-8,28,"#6d86a3"],[8,22,"#b8c0c8"],[24,34,"#7d868f"]])B.box(x-6,14,1,x+6,26,h,c,{front:B.win(3,5,"#cfe2f3",.05,.95)});
+    for(const x of [-20,4])MODELS_SHIP(B,x,-2)},
+  paddle:(B)=>{B.box(-36,-8,0,36,28,.6,"#57b4e6");B.box(-22,4,0,22,16,5,"#f4f1e8",{front:B.win(8,1,GL,.3,.8)});B.box(-16,5,5,16,15,10,"#fbf8f1",{front:B.win(6,1,GL,.3,.8)});B.box(-10,6,10,8,14,13,"#fbf8f1");
+    for(const x of [-6,2])B.prism(x,10,1.2,13,24,8,"#1b2838");B.box(22,4,0,28,16,8,"#c13a2a")},
+  ferryboat:(B,v)=>{B.box(-36,-8,0,36,28,.6,"#57b4e6");B.box(-20,6,0,20,18,5,v||"#2a7a4a",{front:B.win(7,1,GL,.4,.8)});B.box(-16,7,5,16,17,10,"#fbf8f1",{front:B.win(6,1,GL,.3,.8)});B.box(-4,9,10,4,15,14,"#fbf8f1");B.prism(0,12,1.2,14,20,8,"#e9c46a")},
+  // town and market
+  rowhouses:(B,v)=>{const cols=(v||"#e0402a,#2648c9,#e9c46a,#2a9d8f,#c45ab0").split(",");for(let i=0;i<5;i++){const x=-30+i*12,h=12+(i*5%7),c=cols[i%cols.length];B.box(x,4,0,x+11,18,h,c,{front:[...B.win(2,2,"#fbf8f1",.3,.9),...B.door(.18,.3,"#3d2a20")]});B.gable(x-.5,3.5,x+11.5,18.5,h,4,"#7a3a2e")}},
+  market:(B,v)=>{B.box(-32,0,0,32,28,.6,"#d8cbb0");for(let r=0;r<2;r++)for(let i=0;i<5;i++){const x=-28+i*12,y=4+r*13,c=["#e0402a","#e9c46a","#2a9d8f","#f39a2b","#c45ab0"][(i+r)%5];
+      B.box(x,y,0,x+9,y+6,3,"#b07d4f");for(const dx of [0,9])B.line([x+dx,y,0],[x+dx,y,7],.3,"#5a3b2a");B.gable(x-1,y-1,x+10,y+7,7,2.5,c);B.sphere([x+3,y+1,3.6],1,"#e9c46a");B.sphere([x+6,y+1,3.6],1,"#c13a2a")}},
+  square:(B,v)=>{B.box(-34,-2,0,34,28,.8,"#d8cbb0");for(let i=0;i<8;i++)B.box(-34+i*8.5,-2,0,-30+i*8.5,28,.85,"#cfc3a6");B.flag(0,12,0,30,v||"#2a9d8f");B.prism(-18,14,4,.8,2,10,"#bfb59f","#86b8d2");B.prism(18,14,4,.8,2,10,"#bfb59f","#86b8d2");
+    B.box(-30,24,0,30,30,12,"#e8dcc4",{front:B.win(10,2,"#8fa7bf",.2,.85)});B.hip(-30,24,30,30,12,3,"#a8452f",2)},
+  crossing:(B)=>{B.box(-34,-4,0,34,30,.6,"#3d3a3a");for(let i=0;i<9;i++){B.box(-30+i*7,4,0,-26+i*7,22,.7,"#fbf8f1");B.box(-30,4+i*2,0,30,5+i*2,.7,"#3d3a3a")}for(let i=0;i<9;i++)B.box(-4,-2+i*3.6,0,4,0+i*3.6,.7,"#fbf8f1");
+    for(const [x,c] of [[-26,"#e0402a"],[26,"#2648c9"]]){B.box(x-7,24,0,x+7,32,40,"#4a5560",{front:B.win(3,8,"#f6d47a",.05,.6)});B.box(x-6,23.8,26,x+6,24,36,c)}},
+  plaza:(B,v)=>{B.box(-34,-4,0,34,30,.8,"#d8cbb0");B.box(-6,4,0,6,16,4,"#bfb59f");B.prism(0,10,1.6,4,40,4,"#e8dcc4");B.cone(0,10,1.8,40,4,4,"#e8dcc4");B.box(-30,22,0,30,30,10,"#e8dcc4",{front:B.win(10,2,"#8fa7bf",.2,.85)})},
+  bean:(B)=>{B.box(-30,-4,0,30,30,.8,"#d8cbb0");B.sphere([-6,12,7],7,"#cfd6de");B.sphere([6,12,7],7,"#cfd6de");B.sphere([0,12,8],7.5,"#e4e9ef");B.box(-30,24,0,30,30,40,"#6d86a3",{front:B.win(10,8,"#cfe2f3",.05,.95)})},
+  opera:(B)=>{B.box(-36,-8,0,36,6,.6,"#57b4e6");B.box(-30,6,0,30,28,4,"#c9a27a");const sail=(x,y,s)=>{B._poly([[x-s,y,4],[x+s,y,4],[x,y+s*1.4,4+s*2.2]],[0,-1,.5],"#f4f1e8");B._poly([[x+s,y,4],[x+s*.3,y+s*2,4],[x,y+s*1.4,4+s*2.2]],[1,.2,.4],"#e8e4da")};
+    sail(-18,8,8);sail(-6,12,10);sail(8,9,9);sail(20,13,7)},
+  gondola:(B)=>{hill(B,0,18,34,24,"#5e8c4a");B.box(-30,-2,0,-24,4,8,"#e8dcc4");B.box(22,22,24,30,28,30,"#e8dcc4");B.line([-27,1,8],[26,25,30],.35,"#3d3a3a");B.box(-8,6,13,-2,11,18,"#c13a2a",{front:[[.2,.4,.8,.8,GL]]});B.box(10,15,21,16,20,26,"#c13a2a",{front:[[.2,.4,.8,.8,GL]]})},
+  fortress:(B,v)=>{const c=v||"#c9b48a";B.box(-32,8,0,32,26,12,c);for(let i=0;i<12;i++)B.box(-32+i*5.6,7.8,12,-29+i*5.6,10,14.5,c);for(const x of [-32,26]){B.box(x,4,0,x+8,14,18,shadeC(c,.95));for(let i=0;i<3;i++)B.box(x+i*3,3.8,18,x+i*3+2,6,20,c)}
+    B.box(-4,7.8,0,4,8,8,"#5a3b2a")},
+  incawall:(B)=>{for(let r=0;r<3;r++)for(let i=0;i<7-r;i++){const x=-30+r*4+i*9,w=7+(i*3%3),h=6;B.box(x,4+r*6,r*6,x+w,14+r*6,r*6+h,["#9a8f80","#a99f86","#8c8272"][(i+r)%3])}hill(B,0,34,30,14,"#5e8c4a")},
+  machupicchu:(B)=>{B.cone(10,26,18,0,40,7,"#4f7a3a");B.cone(-24,30,10,0,22,6,"#5e8c4a");for(let i=0;i<5;i++)B.box(-26+i*4,-2+i*4,i*3,26-i*2,2+i*4,i*3+3,"#7a9a5a");for(const [x,y] of [[-14,6],[-4,8],[6,6],[-8,14],[4,14]]){B.box(x-3,y-2,9,x+3,y+2,13,"#a99f86");B.gable(x-3.4,y-2.4,x+3.4,y+2.4,13,3,"#8a6a3a")}},
+  castle:(B,v)=>{const c=v||"#c9b48a";B.box(-20,6,0,20,24,18,c,{front:B.win(6,2,"#8fa7bf",.3,.85)});for(const [x,y] of [[-22,4],[18,4],[-22,22],[18,22]]){B.prism(x+2,y+2,4,0,26,10,c);B.cone(x+2,y+2,4.6,26,8,10,"#5a6f88")}B.box(-6,4,0,6,8,12,c,{front:[[.25,0,.75,.6,"#5a3b2a"]]})},
+  stadium:(B,v)=>{B.box(-34,-2,0,34,30,.6,"#79c05a");const n=16;for(let k=0;k<n;k++){const a=k/n*6.283,b=(k+1)/n*6.283,P=t=>[Math.cos(t)*30,14+Math.sin(t)*14];const [ax,ay]=P(a),[bx,by]=P(b);if(Math.sin((a+b)/2)<-.35)continue;
+      B._poly([[ax,ay,0],[bx,by,0],[bx,by,10],[ax,ay,10]],[(ax+bx)/2,(ay+by)/2-14,0],v||"#e8dcc4")}B.box(-18,6,0,18,22,.7,"#4f9a3a");B.box(-.3,6,0,.3,22,.75,"#fbf8f1")},
+  bigstation:(B,v)=>{const c=v||"#c97a4a";B.box(-32,0,0,32,22,16,c,{front:[...B.win(10,2,"#8fa7bf",.2,.85),...[.3,.7].flatMap(u=>B.door(.1,.4,"#5a3b2a",u))]});B.prism(0,6,8,16,24,12,c);B.sphere([0,6,25],8,"#3d6b4f");B.box(-3,0,24,3,4,30,c);B.disc(0,-.1,27,2.4,"#fbf8f1");
+    for(const x of [-28,28]){B.prism(x,4,3,16,26,8,c);B.cone(x,4,3.4,26,6,8,"#3d6b4f")}},
+  theatre:(B,v)=>{const c=v||"#e2c79a";B.box(-26,0,0,26,26,16,c,{front:[...B.win(8,2,"#8fa7bf",.2,.85),...B.door(.2,.35,"#5a3b2a")]});for(let i=0;i<6;i++)B.prism(-15+i*6,-2,1,0,16,8,"#f4efe2");B.box(-18,-3,16,18,2,19,c);B.prism(0,14,10,16,22,14,c);B.sphere([0,14,23],9,"#7d9a8c");B.flag(0,14,32,6,"#2a9d8f")},
+  ship_museum:(B)=>{B.box(-30,0,0,30,22,14,"#b05a2c");B.hip(-31,-1,31,23,14,6,"#3d6b4f",5);for(const x of [-12,0,12])B.line([x,11,18],[x,11,38],.6,"#5a3b2a")},
+  oldhouse:(B,v)=>{const c=v||"#2648c9";B.box(-18,2,0,18,22,10,c,{front:[...B.win(4,1,"#fbf8f1",.35,.85),...B.door(.14,.5,"#5a3b2a")],side:B.win(2,1,"#fbf8f1",.35,.85)});B.box(-19,1,10,19,23,11,shadeC(c,.9));for(const [x,y,r] of [[-24,0,3.4],[24,4,4]])B.sphere([x,y,r],r,"#4f8a3a")},
+  hutong:(B)=>{for(let i=0;i<4;i++){const x=-30+i*16;B.box(x,6,0,x+12,20,7,"#9aa3ad",{front:[...B.door(.2,.6,"#a23b2c"),...B.win(2,1,"#a23b2c",.4,.8)]});B.hip(x-1,5,x+13,21,7,3,"#4a5560",4)}for(let i=0;i<6;i++)B.sphere([-26+i*10,2,9],1.4,"#e0402a")},
+  ruinedhut:(B)=>{B.box(-26,0,0,26,26,.6,"#d9a066");for(let r=0;r<3;r++)B.box(-20+r*4,4+r*3,r*5,20-r*4,22-r*3,r*5+5,"#b8875a")},
+  lighthouse_rock:(B)=>{B.box(-34,-8,0,34,30,.6,"#57b4e6");B.box(-12,6,0,12,22,4,"#3d3a3a");for(let i=0;i<4;i++)B.prism(0,14,4-i*.3,4+i*6,10+i*6,10,i%2?"#fbf8f1":"#c13a2a");B.prism(0,14,3,28,31,10,"#f6d47a");B.cone(0,14,3.3,31,4,10,"#3d3a3a");for(const [x,y] of [[-20,8],[22,12]])B.sphere([x,y,1.4],1.6,"#fbf8f1")},
+  sign:(B,v)=>{hill(B,0,20,36,20,"#7a8a4a");const t=(v||"HOLLYWOOD");for(let i=0;i<t.length;i++)B.box(-30+i*7,8+i*.1,6+(i%3),-25+i*7,9+i*.1,14+(i%3),"#fbf8f1")},
+  bridgecity:(B)=>{B.box(-36,-8,0,36,28,.6,"#57b4e6");for(const x of [-30,26])B.box(x,-8,0,x+6,28,6,"#d8cbb0");B.box(-30,8,8,30,14,10,"#7d868f");for(let i=0;i<5;i++){const x=-24+i*12;B.prism(x,11,1.4,0,8,8,"#9aa3ad")}B.line([-30,11,10],[30,11,10],.4,"#5a6f88")},
+  default:(B,v)=>MODELS.monument(B)
+};
+function hill(B,cx,cy,r,hh,col){const n=10,pt=k=>[cx+Math.cos(k/n*6.283)*r,cy+Math.sin(k/n*6.283)*r*.55];for(let k=0;k<n;k++){const [ax,ay]=pt(k),[bx,by]=pt(k+1),mx=(ax+bx)/2-cx,my=(ay+by)/2-cy;B._poly([[ax,ay,0],[bx,by,0],[cx+(bx-cx)*.35,cy+(by-cy)*.35,hh],[cx+(ax-cx)*.35,cy+(ay-cy)*.35,hh]],[mx*hh,my*hh,r*r*.3],col)}
+  B._poly(Array.from({length:n},(_,k)=>{const [x,y]=pt(k);return [cx+(x-cx)*.35,cy+(y-cy)*.35,hh]}),[0,0,1],shadeC(col,1.08))}
+function temple2(B,col,w,d,h,z0=0,y0=0){B.box(-w-2,y0-4,z0,w+2,y0+d+2,z0+1.5,"#bfb59f");B.box(-w,y0,z0+1.5,w,y0+d,z0+h,col,{front:B.door(.1,.5,"#5a3b2a")});
+  for(let i=0;i<=8;i++){const x=-w+1+i*(2*w-2)/8;B.prism(x,y0-2.4,.9,z0+1.5,z0+h,8,"#f4efe2")}B.box(-w-1,y0-4,z0+h,w+1,y0+d+1,z0+h+1.5,shadeC(col,1.05));B.gable(-w-1,y0-4,w+1,y0+d+1,z0+h+1.5,5,shadeC(col,.95))}
+function statueOn(B,x,y,z,kind,c){if(kind==="buddha"){B.prism(x,y,7,z,z+7,10,c);B.prism(x,y,4.6,z+7,z+15,10,c);B.sphere([x,y,z+18],3.6,c)}}
+function MODELS_SHIP(B,x,y){B.box(x-7,y,0,x+7,y+5,3,"#f4f1e8");B.box(x-4,y+1,3,x+3,y+4,6,"#e8dcc4");B.line([x,y+2.5,6],[x,y+2.5,12],.4,"#3d3a3a")}
+const LM_W={lattice:34,clocktower:36,bascule:60,suspension:64,archbridge:68,stonebridge:44,arch:32,colgate:36,arena:50,ruins:50,parthenon:56,hall:52,capitol:64,whitehouse:58,domechurch:44,twintower:32,spires:46,organ:32,mosque:44,pyramids:56,sphinx:44,stepped:50,statue:22,skyscraper:34,needle:16,observatory:50,prang:38,goldtemple:52,palace_asia:60,toriis:34,bamboo:46,buddhahill:60,stupa:34,mountain:66,beach:68,garden:60,forest:60,water:72,reef:68,waterfall:68,lighthouse:30,pier:72,waterfront:72,paddle:72,ferryboat:72,rowhouses:62,market:64,square:68,crossing:68,plaza:68,bean:60,opera:72,gondola:68,fortress:66,incawall:68,machupicchu:56,castle:48,stadium:68,bigstation:64,theatre:54,ship_museum:62,oldhouse:40,hutong:64,ruinedhut:52,lighthouse_rock:68,sign:72,bridgecity:72,default:18};
+Object.assign(LMK,{
+  louvre:(B)=>{B.box(-34,22,0,34,30,14,"#e6d8b8",{front:B.win(14,2,"#8fa7bf",.2,.85)});B.box(-34,-4,0,34,22,.6,"#d8cbb0");const c=[[-10,0,0],[10,0,0],[10,18,0],[-10,18,0]],t=[0,9,16];for(let i=0;i<4;i++){const a=c[i],b=c[(i+1)%4];B._poly([a,b,t],[(a[0]+b[0])/2,(a[1]+b[1])/2-9,8],"#9fc8e0")}},
+  fountain:(B)=>{B.box(-30,18,0,30,26,22,"#efe2c4",{front:B.win(10,3,"#8fa7bf",.15,.9)});temple2(B,"#efe2c4",8,3,22,0,15);B.box(-26,2,0,26,16,2.4,"#bfb59f");B.box(-24,4,0,24,14,2.5,"#57b4e6");B.prism(0,15,3,2,10,8,"#f4efe2");B.sphere([0,14,12],2.4,"#f4efe2");for(const x of [-8,8])B.line([x,10,6],[x*.6,6,2.5],.6,"#cfe8f6")},
+  steps:(B,v)=>{const cols=(v||"#e9c46a,#e0402a,#2a9d8f,#2648c9").split(",");for(let i=0;i<9;i++)B.box(-14,i*2.4,0,14,i*2.4+2.4,i*2+2,cols[i%cols.length]);twinOn(B,0,24,18)},
+  wallart:(B)=>{const cs=["#e0402a","#2648c9","#e9c46a","#2a9d8f","#c45ab0","#f39a2b"];B.box(-34,8,0,34,10,12,"#e8e4da");for(let i=0;i<8;i++)B.box(-33+i*8.4,7.9,1,-27+i*8.4,8,11,cs[i%6]);B.box(-34,0,0,34,6,.4,"#bfb59f")},
+  booth:(B)=>{B.box(-34,-4,0,34,30,.6,"#cfc3a6");B.box(-5,8,0,5,16,8,"#f4f1e8",{front:[[.2,.4,.8,.8,GL]]});B.gable(-6,7,6,17,8,3,"#a8452f");for(const s of [-1,1])B.box(s*9-3,6,0,s*9+3,8,3,"#c9a46e");B.line([0,4,0],[0,4,16],.5,"#3d3a3a");B.box(-6,3.9,12,6,4,18,"#fbf8f1",{front:[[.1,.2,.9,.8,"#2648c9"]]})},
+  modernmuseum:(B,v)=>{const c=v||"#b8c0c8";B.box(-28,4,0,6,24,10,c,{front:B.win(6,1,"#cfe2f3",.15,.9)});B.box(-10,8,10,24,26,22,shadeC(c,.9),{front:B.win(6,3,"#cfe2f3",.1,.95)});B._poly([[6,4,0],[24,4,0],[24,4,10],[6,4,4]],[0,-1,0],"#6d86a3")},
+  stonetower:(B,v)=>{const c=v||"#c9b48a";B.prism(0,12,7,0,38,14,c);for(let i=0;i<4;i++)B.box(-1.2+(i-1.5)*3,4.8,28,1.2+(i-1.5)*3,5,31,"#3d3a3a");B.prism(0,12,7.6,38,40,14,shadeC(c,.9));B.cone(0,12,7.6,40,12,14,"#5a6f88");B.box(-14,6,0,14,22,6,c)},
+  canal:(B)=>{B.box(-36,-6,0,36,12,.6,"#3f9ac0");for(let i=0;i<5;i++){const x=-34+i*14;B.box(x,12,0,x+13,24,12+(i*3%5),["#e89a9a","#e9c46a","#d98a52","#f4f1e8","#c45a2c"][i],{front:B.win(3,2,"#fbf8f1",.25,.9)})}
+    B._poly([[-10,3,.7],[8,3,.7],[12,5,1.6],[-14,5,1.6]],[0,0,1],"#1b2838");B.line([10,4,1.6],[13,4,7],.4,"#3d3a3a")},
+  loco:(B)=>{B.box(-34,2,0,34,16,.5,"#7b6d5d");for(const y of [6,12])B.box(-34,y,.5,34,y+.6,1,"#5a5a5a");B.box(-18,4,1,10,14,9,"#1b2838");B.prism(-16,9,4.4,6,8,10,"#1b2838");B.prism(-12,9,1.4,9,15,8,"#1b2838");B.box(2,4,1,12,14,14,"#7a3a2e",{front:[[.2,.5,.8,.85,GL]]});B.box(12,4,1,30,14,8,"#2a7a4a")},
+  laundry:(B)=>{B.box(-34,-2,0,34,30,.6,"#bfb59f");for(let r=0;r<3;r++){B.box(-30,4+r*8,0,30,8+r*8,1.6,"#9aa3ad");B.line([-30,6+r*8,9],[30,6+r*8,9],.25,"#5a5a5a");for(let i=0;i<10;i++)B.box(-28+i*6,5.5+r*8,4.5,-24.5+i*6,6.5+r*8,8.8,["#e0402a","#fbf8f1","#2648c9","#e9c46a","#2a9d8f"][(i+r)%5])}},
+  floatmarket:(B)=>{B.box(-36,-6,0,36,30,.6,"#7a9a6a");for(const [x,y] of [[-22,4],[-2,10],[18,4],[-12,20],[12,22]]){B._poly([[x-7,y,.7],[x+7,y,.7],[x+8,y+3,1.4],[x-8,y+3,1.4]],[0,0,1],"#5a3b2a");B.sphere([x-3,y+1.5,2.2],1.2,"#e9c46a");B.sphere([x+1,y+1.5,2.2],1.2,"#e0402a");B.cone(x+4,y+1.5,2.4,2,1.6,8,"#d8c39a")}},
+  palm:(B)=>{B.box(-36,-6,0,36,30,.6,"#57b4e6");B.box(-3,0,0,3,26,1,"#ecd79c");for(let i=0;i<5;i++){B.box(-26,4+i*5,0,-3,6+i*5,1,"#ecd79c");B.box(3,4+i*5,0,26,6+i*5,1,"#ecd79c")}B.box(-30,26,0,30,29,1,"#ecd79c");B.box(-6,24,1,6,28,10,"#f4f1e8")},
+  greatwall:(B)=>{hill(B,0,17,36,12,"#6b8f4a");const P=t=>[-34+t*68,14+Math.sin(t*6)*8,6+Math.sin(t*3)*6];for(let i=0;i<14;i++){const a=P(i/14),b=P((i+1)/14);B.line(a,b,3.4,"#a99f86")}for(const t of [.15,.5,.85]){const p=P(t);B.box(p[0]-3,p[1]-3,p[2]-2,p[0]+3,p[1]+3,p[2]+6,"#a99f86")}},
+  tiantan:(B)=>{for(let i=0;i<3;i++)B.prism(0,12,16-i*3,i*2,i*2+2,16,"#f4f1e8");for(let i=0;i<3;i++){const r=10-i*2.4,z=6+i*8;B.prism(0,12,r*.75,z,z+5,14,"#a23b2c");B.cone(0,12,r,z+5,3,14,"#2648c9")}B.sphere([0,12,33],1.4,"#d9a441")},
+  chinagate:(B)=>{B.box(-34,-2,0,34,30,.6,"#cfc3a6");for(const x of [-12,-4,4,12])B.prism(x,10,1.2,0,16,8,"#c13a2a");B.box(-15,8,14,15,12,17,"#2a7a4a");B.hip(-17,7,17,13,17,4,"#3d6b4f",2.5);B.box(-6,8.5,18,6,11.5,21,"#2a7a4a");B.hip(-8,7.5,8,12.5,21,3,"#3d6b4f",2)},
+  lombard:(B)=>{hill(B,0,15,34,22,"#79c05a");for(let i=0;i<8;i++){const y=2+i*3.2,z=1+i*2.6,s=i%2?1:-1;B.line([-12*s,y,z],[12*s,y+3.2,z+2.6],1.8,"#9aa3ad")}for(let i=0;i<4;i++)B.box(16,2+i*6,i*4,26,8+i*6,i*4+8,["#e89a9a","#86b8d2","#e9c46a","#f4f1e8"][i])},
+  cablecar:(B)=>{B.hip(-34,0,34,30,0,6,"#9aa3ad",3);B._poly([[-34,6,0],[34,6,14],[34,12,14],[-34,12,0]],[0,-.2,1],"#7d868f");B.box(-8,7,4,8,11,10,"#c13a2a",{front:[[.1,.45,.9,.85,GL]]});B.box(-9,6.6,10,9,11.4,11,"#e9c46a");for(let i=0;i<4;i++)B.box(14,14+i*.5,6+i*3,30,22,12+i*3,["#e89a9a","#86b8d2","#f4f1e8","#e9c46a"][i])},
+  taj:(B,v)=>{const c="#fbf8f1",s=v==="small"?.6:1;B.box(-30*s,0,0,30*s,26*s,4*s,"#e8e4da");B.box(-16*s,6*s,4*s,16*s,22*s,20*s,c,{front:[[.35,.2,.65,.85,"#cfd6de"]]});B.prism(0,14*s,7*s,20*s,24*s,12,c);B.sphere([0,14*s,28*s],8*s,c);B.cone(0,14*s,1.6*s,35*s,5*s,8,"#d9a441");
+    for(const [x,y] of [[-26,3],[26,3],[-26,23],[26,23]]){B.prism(x*s,y*s,1.6*s,4*s,34*s,8,c);B.sphere([x*s,y*s,35*s],2*s,c)}if(s===1)B.box(-4,-14,0,4,0,.7,"#57b4e6")},
+  minaret:(B,v)=>{const c=v||"#c9956a";B.box(-26,10,0,10,28,10,c);B.box(14,8,0,24,18,46,c,{front:B.win(1,4,"#3d6b4f",.3,.9)});B.box(13,7,46,25,19,48,c);B.box(16,10,48,22,16,54,c);B.cone(19,13,3,54,5,4,"#2a7a4a");B.sphere([19,13,60],1,"#d9a441")},
+  tram:(B)=>{B.box(-34,2,0,34,16,.5,"#9aa3ad");for(const y of [6,12])B.box(-34,y,.5,34,y+.5,.9,"#5a5a5a");B.box(-18,4,1,18,14,10,"#7a3a2e",{front:[...B.win(6,1,GL,.45,.85)]});B.box(-18,4,10,18,14,11,"#e9c46a");B.line([0,9,11],[0,9,18],.4,"#3d3a3a");B.line([-34,9,18],[34,9,18],.3,"#3d3a3a")},
+  beehive:(B)=>{for(let i=0;i<6;i++)B.prism(0,14,14-i*1.6,i*5,i*5+5,16,i%2?"#d8cbb0":"#efe8d8",i===5?"#9aa3ad":null);B.box(18,4,0,34,24,22,"#d8c39a",{front:B.win(4,4,"#8fa7bf",.15,.9)})},
+  memorial:(B)=>{B.box(-36,-6,0,36,30,.6,"#57b4e6");B.box(-18,6,2,18,14,8,"#fbf8f1",{front:B.win(7,1,"#8fa7bf",.3,.8)});B._poly([[-18,6,8],[0,6,6],[18,6,8],[18,14,8],[0,14,6],[-18,14,8]],[0,0,1],"#e8e4da");B.flag(18,10,8,10,"#2648c9");B.box(-34,22,0,34,30,4,"#6b8f4a")},
+  fountainshow:(B)=>{B.box(-36,-6,0,36,22,.6,"#57b4e6");for(let i=0;i<9;i++){const x=-28+i*7,h=8+Math.abs(4-i)*3;B.line([x,8,.6],[x,8,h],1,"#e6f2fb");B.sphere([x,8,h],1.6,"#f2f8fc")}B.box(-30,22,0,30,30,24,"#9aa3ad",{front:B.win(10,6,"#cfe2f3",.05,.95)})}
+});
+function twinOn(B,x,y,z){B.box(x-10,y,z,x+10,y+8,z+10,"#f4efe2");for(const dx of [-8,6])B.box(x+dx,y,z+10,x+dx+3,y+3,z+18,"#f4efe2");B.cone(x-6.5,y+1.5,1.6,z+18,4,8,"#5a6f88");B.cone(x+7.5,y+1.5,1.6,z+18,4,8,"#5a6f88")}
+Object.assign(LM_W,{louvre:68,fountain:60,steps:30,wallart:68,booth:30,modernmuseum:52,stonetower:30,canal:72,loco:68,laundry:68,floatmarket:72,palm:72,greatwall:72,tiantan:34,chinagate:36,lombard:68,cablecar:68,taj:62,minaret:52,tram:68,beehive:48,memorial:72,fountainshow:72});
+/* mountain extras */
+{const _m=LMK.mountain;LMK.mountain=(B,v)=>{if(v==="christ"){hill(B,0,15,30,22,"#5e8c4a");B.box(-3,13,22,3,17,25,"#cfc3a6");B.prism(0,15,1.6,25,38,8,"#f4f1e8");B.box(-9,14,34,9,16,36,"#f4f1e8");B.sphere([0,15,40],1.6,"#f4f1e8");return}_m(B,v)}}
+{const _w=LMK.water;LMK.water=(B,v)=>{if(v==="pink"){B.box(-36,-6,0,36,26,.6,"#e89aa8");B.box(-36,24,0,36,30,4,"#ecd79c");for(let i=0;i<5;i++)B.cone(-28+i*14,26,3,4,4,8,"#fbf8f1");return}_w(B,v)}}
+{const _b=LMK.beach;LMK.beach=(B,v)=>{_b(B,v);if(v==="black")B.box(-34,4,0,34,24,1.05,"#3d3a3a")}}
+
+const LM_MAP={"rey":[["organ","waterfront","pier"],["organ","waterfront","water:lake"]],"lon":[["bascule","clocktower","hall"],["clocktower","bascule","palace"]],"par":[["lattice","arch","louvre"],["lattice","arch","twintower"]],"rom":[["fountain","arena","capitol:#d8c8a8"],["steps:#efe2c4,#e6d8b8","plaza","domechurch"]],"bln":[["wallart","colgate","capitol:#d8cbb0"],["booth","garden","wallart"]],"bcn":[["spires","garden","market"],["market","market","beach"]],"ath":[["parthenon","stadium:#f4f1e8","ruins"],["rowhouses:#f4f1e8,#e9c46a,#86b8d2","stadium:#f4f1e8","modernmuseum:#d8d4cc"]],"ist":[["mosque:#d9a08a","mosque:#cfd6de","market"],["stonetower","ruins:#c9b48a","bridgecity"]],"ven":[["stonebridge","square","stonebridge:#f4f1e8"],["square","stonebridge:#f4f1e8","canal"]],"nyc":[["statue:liberty","skyscraper:empire","garden"],["crossing","suspension:#9a8f80","bigstation:#d8cbb0"]],"mex":[["stepped:#a99f86","square:#2a7a4a","oldhouse:#2648c9"],["square:#2a7a4a","ferryboat:#e0402a","theatre:#f4f1e8"]],"rio":[["mountain:christ","mountain:sugar","beach"],["mountain:sugar","steps","stadium"]],"cus":[["machupicchu","incawall","square:#e0402a"],["square:#e0402a","incawall","domechurch:#d8c39a"]],"cai":[["sphinx","pyramids","hall:#d9a08a"],["market","mosque:#e6d8c0","water:lake"]],"nbo":[["garden:giraffe","garden:giraffe","forest"],["garden:giraffe","garden:giraffe","loco"]],"cpt":[["lighthouse","mountain:table","lighthouse_rock"],["rowhouses","garden","waterfront"]],"mum":[["arch:#d9a066","bigstation:#c9a27a","waterfront"],["arch:#d9a066","waterfront","laundry"]],"bkk":[["prang","palace_asia:#f4f1e8","floatmarket"],["market","prang","palace_asia"]],"dxb":[["skyscraper:burj","palm","market"],["ferryboat:#b07d4f","fountainshow","modernmuseum"]],"pek":[["palace_asia","greatwall","tiantan"],["square:#e0402a","tiantan","hutong"]],"tyo":[["crossing","palace_asia:#a23b2c","needle:#e8eef4"],["crossing","palace_asia:#a23b2c","market"]],"syd":[["opera","archbridge","beach"],["beach","rowhouses:#c9a27a,#b05a2c,#d8cbb0","garden:giraffe"]],"van":[["garden:totem","suspension:#8a6a3a","rowhouses:#b05a2c,#7a3a2e"],["garden:totem","market","gondola"]],"sfo":[["suspension","lighthouse_rock","cablecar"],["chinagate","rowhouses:#c45ab0,#86b8d2,#e9c46a,#f4f1e8","lombard"]],"bue":[["rowhouses:#e0402a,#2648c9,#e9c46a,#2a9d8f","hall:#e89a9a","monument"],["rowhouses:#e0402a,#2648c9,#e9c46a,#2a9d8f","theatre","plaza"]],"agr":[["taj","fortress:#b5562e","garden"],["garden","taj:small","fortress:#c45a2c"]],"sin":[["statue:merlion|#f4f1e8","skyscraper:mbs","garden:supertree"],["statue:merlion|#f4f1e8","rowhouses:#e9c46a,#86b8d2,#e89a9a","beach"]],"hkg":[["mountain:tower","ferryboat","buddhahill"],["mountain:tower","market","waterfront"]],"lax":[["sign","pier:wheel","observatory"],["square:#e9c46a","beach","hall:#f4f1e8"]],"was":[["whitehouse","capitol","hall:#f4f1e8"],["monument","castle:#a8452f","capitol:#e8dcc4"]],"yyz":[["needle","castle","waterfront"],["rowhouses:#a8452f,#7a3a2e","market","hall:#a8452f"]],"hav":[["waterfront","capitol:#e6d8c0","rowhouses:#86b8d2,#e9c46a,#e89a9a"],["twintower:#d9c39a","lighthouse_rock","square"]],"scl":[["mountain:christ","square","hall:#f4f1e8"],["market","rowhouses","skyscraper:x|#7d9aaf"]],"rak":[["market","minaret","oldhouse:#2648c9"],["hall:#e6d8c0","mosque:#e6d8c0","fortress:#c45a2c"]],"znz":[["rowhouses:#f4f1e8,#d8cbb0,#a99f86","garden","forest"],["oldhouse:#f4f1e8","fortress:#a99f86","beach"]],"sel":[["palace_asia:#2a7a4a","needle","hutong"],["water:lake","palace_asia","crossing"]],"kyo":[["toriis","goldtemple","bamboo"],["rowhouses:#7a3a2e,#5a3b2a","market","palace_asia"]],"mel":[["bigstation:#e9c46a","modernmuseum","garden"],["wallart","market","tram"]],"akl":[["needle","waterfront","mountain:crater"],["mountain:crater","archbridge","beach"]],"chi":[["bean","skyscraper:willis","pier:wheel"],["garden","waterfront","stadium:#a8452f"]],"msy":[["rowhouses","spires:#f4f1e8","paddle"],["rowhouses","cafe","rowhouses:#c45ab0,#e9c46a,#2a9d8f"]],"lim":[["square:#e9c46a","stepped:#c9a27a","beach"],["rowhouses","hall:#f4f1e8","fountainshow"]],"ctg":[["fortress:#d8c39a","fortress:#a99f86","rowhouses"],["rowhouses:#e9c46a,#e89a9a,#86b8d2","square","clocktower:#e9c46a"]],"uio":[["plaza","twintower:#9aa3ad","mountain:christ"],["rowhouses","gondola","domechurch"]],"mao":[["theatre:#e89a9a","water:two","forest:rain"],["market","beach","oldhouse:#a99f86"]],"lpb":[["gondola","market","mountain:moon"],["market","square","mountain"]],"ush":[["lighthouse_rock","water:mountains","forest"],["loco","fortress:#9aa3ad","waterfront"]],"acc":[["arch:#f4f1e8","lighthouse","garden"],["market","rowhouses","beach"]],"add":[["hall:#d8cbb0","market","domechurch:#a99f86"],["market","mountain","square:#e9c46a"]],"dkr":[["statue:liberty|#7a6a5a","rowhouses:#e89a9a,#e9c46a","water:pink"],["lighthouse_rock","market","beach"]],"lvi":[["waterfall","waterfall","water:lake"],["hall:#e8dcc4","archbridge","waterfall"]],"tnr":[["castle:#a8452f","garden:lemur","market"],["water:lake","market","square"]],"cns":[["reef","forest:rain","water:lake"],["water:lake","gondola","garden"]],"asp":[["mountain:uluru","mountain:canyon","oldhouse:#d8c39a"],["forest:river","mountain","ctower"]],"per":[["garden","beach","waterfront"],["garden","rowhouses","beach"]],"wlg":[["modernmuseum","cablecar","mountain"],["beehive","rowhouses","forest"]],"zqn":[["gondola","water:mountains","forest:river"],["rowhouses","paddle","suspension:#7d868f"]],"hnl":[["beach","mountain:crater","memorial"],["hall:#f4f1e8","rowhouses","beach"]],"ppt":[["market","beach:black","waterfall"],["plaza","market","oldhouse:#e9c46a"]]};
+for(const [ss,ff] of Object.values(LM_MAP))for(const k of [...ss,...ff])if(!ART[k])ART[k]=[LM_W[k.split(":")[0]]||40,40];
 const MODELC={};function modelFor(kind,c){const k=kind+"|"+c.st;return MODELC[k]||(MODELC[k]=buildModel(kind,c))}
 /* ================= Printed tourist map look ================= */
 const STREETS={
@@ -2800,6 +2989,8 @@ function dayItems(c){const m=cityMap(c),wd=buildWorld(c),out=[];if(!S.picked)S.p
   const R=rng(hash(c.id+":"+dayOf(c)));for(let i=0;i<3;i++){const pt=spot(R),key=`${c.id}:${dayOf(c)}:${i}`;if(pt&&!S.picked.includes(key))out.push({t:"coin",x:pt[0],y:pt[1],key,amt:r10(30+R()*120)})}
   // one newspaper and one lost tourist per city, once per game
   const R2=rng(hash(c.id+":bonus"));for(const t of ["paper","tourist"]){const pt=spot(R2),key=`${c.id}:once:${t}`;if(pt&&!S.bonus.includes(key))out.push({t,x:pt[0],y:pt[1],key,amt:0})}
+  // the quiz host stands somewhere in town with his little table, once a day
+  {const pt=spot(R),key=`${c.id}:${dayOf(c)}:host`;if(pt&&!S.picked.includes(key))out.push({t:"host",x:pt[0],y:pt[1],key,amt:0})}
   return out}
 function itemCanvas(t){const cv=document.createElement("canvas");cv.width=128;cv.height=150;const g=cv.getContext("2d");g.lineWidth=5;g.strokeStyle="#1b2838";
   g.fillStyle=t==="coin"?"#f0b440":t==="tourist"?"#2a9d8f":"#fbf8f1";g.beginPath();g.arc(64,60,52,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(52,108);g.lineTo(64,140);g.lineTo(76,108);g.fill();g.stroke();
@@ -2866,6 +3057,12 @@ function drawStreet(now){
       g.fillStyle="rgba(0,0,0,.16)";g.beginPath();g.ellipse(sx+w*.12,sy-w*.05,w*.62,w*.16,0,0,7);g.fill();
       if(ph>.01)g.drawImage(A.cv,sx-A.ax*k2,sy-A.ay*k2*ph,A.cv.width*k2,A.cv.height*k2*ph)}})}
   for(const it of W3.items){if(it.done||it.s<.01)continue;
+    if(it.t==="host"){if(isDark())continue;objs.push({y:it.y,f:()=>{g.globalAlpha=Math.min(1,it.s);shadow(it.x,it.y);
+      const [tx,ty]=proj(it.x+7,it.y-1,0),[tx2,ty2]=proj(it.x+7,it.y-1,9);g.fillStyle="#7a4b2e";g.fillRect(tx-.4*s,ty2,.8*s,ty-ty2);g.fillStyle="#2a7a4a";g.strokeStyle="#1b2838";g.lineWidth=1.2;g.beginPath();g.ellipse(tx,ty2,6*s,2.2*s,0,0,7);g.fill();g.stroke();
+      g.fillStyle="#f6d47a";g.beginPath();g.arc(tx-2*s,ty2-1*s,1.4*s,0,7);g.fill();g.stroke();g.beginPath();g.arc(tx+1.5*s,ty2-.8*s,1.4*s,0,7);g.fill();g.stroke();
+      drawWalker(g,HOST_W,it.x,it.y,Math.sin(now/900)*.6,false,proj);
+      const [bx,by]=proj(it.x,it.y,27),bb=Math.sin(now/300)*1.5;g.fillStyle="#f6d47a";g.strokeStyle="#1b2838";g.lineWidth=1.6;g.beginPath();g.roundRect?g.roundRect(bx-1*s,by-9*s+bb,12*s,7*s,2*s):g.rect(bx-1*s,by-9*s+bb,12*s,7*s);g.fill();g.stroke();
+      g.fillStyle="#1b2838";g.font=`900 ${5*s}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText("2×?",bx+5*s,by-5.4*s+bb);g.globalAlpha=1}});continue}
     if(it.t==="tourist"){objs.push({y:it.y,f:()=>{g.globalAlpha=Math.min(1,it.s);shadow(it.x,it.y);drawWalker(g,TOURIST_W,it.x,it.y,Math.sin(now/1600+it.x)*1.3,false,proj);
       const [bx,by]=proj(it.x,it.y,25),r=5.2*s,bb=Math.sin(now/300)*1.5;g.fillStyle="#fff";g.strokeStyle="#1b2838";g.lineWidth=1.6;g.beginPath();g.arc(bx+5*s,by-3*s+bb,r,0,7);g.fill();g.stroke();
       g.beginPath();g.arc(bx+1.6*s,by+1.5*s+bb,1.1*s,0,7);g.fill();g.stroke();g.fillStyle="#1b2838";g.font=`800 ${7.5*s}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText("?",bx+5*s,by-2.6*s+bb);g.globalAlpha=1}});continue}
@@ -2904,6 +3101,7 @@ function drawStreet(now){
 }
 const speedMul=()=>(S.shoes?1.15:1)*(S.energy<=10?.55:1);
 const TOURIST_W={phase:0,col:{shirt:"#f4a259",pants:"#5a6f88",skin:"#f1c7a1",pack:"#2a9d8f",cap:"#e9c46a"}};
+const HOST_W={phase:0,col:{shirt:"#c13a2a",pants:"#1b2838",skin:"#e8b98f",pack:null,cap:"#1b2838"}};
 const THIEF_W={phase:0,col:{shirt:"#2b2b33",pants:"#1d1d22",skin:"#c99a74",pack:null,cap:"#111"}};
 /* the night thief on an e-scooter: chases you until you reach a building */
 function inView(x,y,p,m=0){const s=(W3.W/150)/W3.zoom,dx=(x-p[0])*s,dy=(y-p[1])*s*KY;return Math.abs(dx)<W3.W/2-30-m&&dy>-(W3.H*.62-140-m)&&dy<W3.H*.38-(m>0?230:150)-m}
@@ -2945,6 +3143,7 @@ function afterMove(moved){
 }
 function pickItem(it){
   if(it.key.includes(":once:")){if(!S.bonus)S.bonus=[];S.bonus.push(it.key)}else{S.picked.push(it.key);if(S.picked.length>60)S.picked=S.picked.slice(-60)}it.done=true;keys.clear();joyV=[0,0];
+  if(it.t==="host"){openQuizHost();return}
   if(it.t==="coin"){S.money+=it.amt;toast(`Du hittade ${fmt(it.amt)} kr på marken!`);render();return}
   if(it.t==="paper"){const open=S.missions.filter(id=>!S.tips.includes(id));if(open.length){const id=open[Math.floor(Math.random()*open.length)];S.tips.push(id);
       modal(`<h2>En kvarglömd tidning</h2><div class="sub">En artikel handlar om en av platserna klubben vill ha bilder på. Nu vet du att den ligger i <b>${esc(BY[id].c)}</b>.</div><div class="fact">${esc(BY[id].clue)}</div><button class="close" type="button">Stäng</button>`,{center:true})}
@@ -2977,7 +3176,7 @@ function w3Loop(now){
     if(W3.target){W3.stuck=d<sp*.35?(W3.stuck||0)+dt:0;if(W3.stuck>.5)W3.target=null}
     if(d>0){p[0]=mx;p[1]=my;W3.moving=true;W3.me.phase+=dt*11*Math.min(1,L);$("walkhint").hidden=true;S.walked=1;afterMove(d)}}
   W3.pois.forEach((o,i)=>{if(isFound(c,i))o.s=Math.min(1,o.s+dt*1.6)});
-  thiefStep(dt,wd,p);for(const it of W3.items){if(it.done)continue;const d=dist2([it.x,it.y],p),want=d<(it.t==="tourist"?150:75)?1:0;it.s+=(want-it.s)*Math.min(1,dt*6);if(d<8&&!modalOpen()&&!busy)pickItem(it)}
+  thiefStep(dt,wd,p);for(const it of W3.items){if(it.done)continue;const d=dist2([it.x,it.y],p),want=d<(it.t==="tourist"||it.t==="host"?150:75)?1:0;if(it.t==="host"&&isDark())continue;it.s+=(want-it.s)*Math.min(1,dt*6);if(d<8&&!modalOpen()&&!busy)pickItem(it)}
   
   drawStreet(now);
 }
@@ -3420,9 +3619,9 @@ function rideTaxi(x){const c=here(),m=cityMap(c),d=m.nodes[x.p.node],wd=buildWor
 
 /* ================= The quiz host on the street: bet on a hard question ================= */
 let hostAcc=0;
-function quizHostCheck(moved){if(isDark()||modalOpen()||busy)return;hostAcc+=moved;while(hostAcc>=100){hostAcc-=100;if(Math.random()<.035&&S.money>=100){openQuizHost();hostAcc=-300;return}}}
+function quizHostCheck(moved){return;if(isDark()||modalOpen()||busy)return;hostAcc+=moved;while(hostAcc>=100){hostAcc-=100;if(Math.random()<.035&&S.money>=100){openQuizHost();hostAcc=-300;return}}}
 function openQuizHost(){keys.clear();joyV=[0,0];const bets=[100,250,500].filter(b=>b<=S.money);
-  const m=modal(`<h2>Frågevärden</h2><div class="sub">En man i randig väst och blank hatt kliver fram. ”Dubbelt eller kvitt, min vän! En svår fråga. Hur mycket vågar du satsa?”</div>
+  const m=modal(`<h2>Frågevärden</h2><div class="sub">Mannen vid det lilla bordet lyfter på den blanka hatten. ”Dubbelt eller kvitt, min vän! En svår fråga. Hur mycket vågar du satsa?”</div>
     <div class="opts">${bets.map(b=>`<button class="opt" data-b="${b}" type="button">${pIcon("globe")}<span><span class="t">Satsa ${fmt(b)} kr</span><span class="r">Rätt svar ger +${fmt(b)} kr</span></span><span class="p"></span></button>`).join("")}</div>
     <button class="close" type="button">Nej tack</button>`,{center:true});
   m.querySelectorAll("[data-b]").forEach(btn=>btn.onclick=()=>{const bet=+btn.dataset.b,cats=Object.keys(CATS),cat=PICK(cats);
@@ -4453,7 +4652,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 60 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 61 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
