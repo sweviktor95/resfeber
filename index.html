@@ -3320,7 +3320,7 @@ function render(){renderHeader();renderCity();if(typeof AMB!=="undefined")AMB.sc
 function sleepHours(){const h=hourOf();return h<7?7-h:31-h}
 function openHotel(kind){
   const c=here(),t=tierOf(c),first=!S.hostels.includes(c.id),sh=sleepHours();
-  const hn=kind==="lux"?"Hotell Panorama":(cityMap(c).pois.find(p=>p.type==="hostel")||{}).n||"Bed & Breakfast";const m=modal(`<h2>${esc(hn)}</h2><div class="sub">Du sover till 07:00 (${durTxt(sh)}). Ute på natten kan du bli rånad, men på hotellet är du trygg.</div>
+  const hn=kind==="lux"?"Hotell Panorama":(cityMap(c).pois.find(p=>p.type==="hostel")||{}).n||"Bed & Breakfast";const m=modal(`<h2>${esc(hn)}</h2><div class="sub">Du sover till 07:00 (${durTxt(sh)}). Ute på natten kan ficktjuvar vara i farten, men här inne är du trygg.</div>
    <div class="opts">
     ${kind!=="lux"?"":`<button class="opt" data-k="lux" type="button" ${S.money<t.lux?"disabled":""}>${pIcon("bed")}<span><span class="t">Rum med utsikt</span><span class="r">Full energi · frukost, energidryck${hasCityMap(c)?"":" och stadskarta"} ingår</span></span><span class="p">${fmt(t.lux)} kr</span></button>`}
     ${kind==="lux"?"":`<button class="opt" data-k="hos" type="button" ${S.money<t.hostel?"disabled":""}>${pIcon("bed")}<span><span class="t">Enkelt rum</span><span class="r">Energin räcker till 75 % på morgonen · inget ingår${first?" · första gången tar det 2 timmar att få ett rum":""}</span></span><span class="p">${fmt(t.hostel)} kr</span></button>`}
@@ -3328,7 +3328,7 @@ function openHotel(kind){
    </div><button class="close" type="button">Avbryt</button>`);
   wireCommonJob(m);m.querySelectorAll(".opt[data-k]").forEach(b=>b.onclick=()=>{
     if(b.dataset.k==="lux"){S.money-=t.lux;S.t+=sh;S.energy=100;if((S.drinks||0)<MAXDRINK)S.drinks=(S.drinks||0)+1;const gift=!hasCityMap(c);if(gift)buyCityMap();closeModal();toast(gift?`Du sov gott och åt frukost. På rummet låg en stadskarta över ${c.n} och en energidryck. Kartan finns i menyn till höger.`:`Du sov gott och åt frukost. En energidryck ligger i väskan. Klockan är ${clock()}.`,gift?3600:2600)}
-    else{S.money-=t.hostel;if(first){pass(2);maybeRob();S.hostels.push(c.id)}S.t+=sleepHours();S.energy=Math.max(S.energy,75);closeModal();toast(`Sängen knarrade, men du fick sova. Energin är på 75 %. Klockan är ${clock()}.`,2600)}
+    else{S.money-=t.hostel;if(first){pass(2);S.hostels.push(c.id)}S.t+=sleepHours();S.energy=Math.max(S.energy,75);closeModal();toast(`Sängen knarrade, men du fick sova. Energin är på 75 %. Klockan är ${clock()}.`,2600)}
     render()});
 }
 function jobsHere(){const c=here(),R=rng(hash(c.id+dayOf()));const keys=Object.keys(JOBS);const a=keys[Math.floor(R()*keys.length)];let b;do{b=keys[Math.floor(R()*keys.length)]}while(b===a);return [a,b]}
@@ -3430,7 +3430,7 @@ function openPub(){
   const per=r10(150*(1+TI[c.t]*.15));
   const m=modal(`<h2>Puben</h2><div class="sub">Kvällens frågesport. Varje rätt svar ger ${fmt(per)} kr. Tänk på att det kan vara farligt att gå hem sent.</div><button class="btn primary" type="button" id="go">Spela · 1,5 tim</button><button class="close" type="button">Avbryt</button>`);
   m.querySelector("#go").onclick=()=>runQuiz({title:"Pubquiz",sub:"Tre frågor om öl, vin och drinkar",qs:tradeQs(here(),3,"pub",["pubround"]),done:(right,box)=>{
-    markDoneB(here(),"pub");const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);maybeRob();
+    markDoneB(here(),"pub");const win=right*per;S.money+=win;pass(1.5);spendEnergy(4);
     box.innerHTML=`<h2>${right?"Vinst!":"Ingen vinst i kväll"}</h2><div class="sub">${right} av 3 rätt · klockan är nu ${clock()}</div><div class="result">+${fmt(win)} kr</div><button class="btn primary" type="button" id="ok">Gå hem</button>`;box.querySelector("#ok").onclick=closeModal;render()}});
 }
 function openKiosk(){
@@ -4671,7 +4671,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 65 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 66 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
