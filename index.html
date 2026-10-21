@@ -1277,7 +1277,7 @@ function sthlmMap(){
   const N={cen:[18.0585,59.3305],tegel:[18.0590,59.3298],sthus:[18.0543,59.3276],sergel:[18.0640,59.3325],vasab_n:[18.0648,59.3293],vasab_s:[18.0667,59.3263],
     norrbro_n:[18.0704,59.3298],helge:[18.0699,59.3280],slott:[18.0722,59.3262],stort:[18.0707,59.3250],vlg:[18.0690,59.3237],olg:[18.0740,59.3238],jtorg:[18.0718,59.3222],
     slussen_n:[18.0712,59.3214],slussen:[18.0718,59.3190],rhb:[18.0668,59.3254],riddarh:[18.0638,59.3247],kungstr:[18.0716,59.3318],grand:[18.0760,59.3297],blasie:[18.0795,59.3289],
-    skepps_n:[18.0828,59.3271],hostel:[18.0822,59.3255],nybro:[18.0772,59.3326],strand:[18.0880,59.3326],djbro_n:[18.0975,59.3323],djbro_s:[18.0975,59.3298],vasa:[18.0928,59.3280],arlanda:[18.0760,59.3352],stadsg:[18.0830,59.3188]};
+    skepps_n:[18.0828,59.3271],hostel:[18.0822,59.3255],nybro:[18.0772,59.3326],strand:[18.0880,59.3326],djbro_n:[18.0975,59.3323],djbro_s:[18.0975,59.3298],vasa:[18.0928,59.3280],arlanda:[18.0760,59.3346],stadsg:[18.0830,59.3188]};
   const nodes={};for(const k in N)nodes[k]=P(N[k][0],N[k][1]);
   const E=[["cen","tegel"],["tegel","sthus",1],["cen","sergel"],["cen","vasab_n"],["sergel","kungstr"],["vasab_n","norrbro_n"],["norrbro_n","kungstr"],["vasab_n","vasab_s",1],
     ["vasab_s","slott"],["vasab_s","rhb"],["rhb","riddarh",1],["rhb","vlg"],["norrbro_n","helge",1],["helge","slott",1],["slott","stort"],["stort","vlg"],["stort","olg"],["slott","olg"],
@@ -2798,7 +2798,7 @@ function apRoof(B,t,x0,x1,y0,y1,z,col){const w=x1-x0;
   else B.box(x0-1,y0-1,z,x1+1,y1+1,z+1.2,col)}
 /* o: wall colour, roof type and colour, tower shape/colour, tail colour of the parked jet */
 function airportModel(B,o){const wall=o.wall||"#d8dde3";B.box(-32,0,0,24,20,9,wall,{front:[[.04,.3,.96,.88,o.glass||GL],...B.door(.1,.3,"#2a3646",.45)],side:B.win(3,1,GL,.35,.85)});
-  apRoof(B,o.roof||"flat",-32,24,0,20,9,o.rc||"#cfd6de");if(o.sign)B.box(-12,-.2,6,4,0,8.5,o.sign);ctower(B,18,30,o.tw||{});jet(B,-18,-20,o.tail);apron(B,-34,-34,30,-4)}
+  apRoof(B,o.roof||"flat",-32,24,0,20,9,o.rc||"#cfd6de");if(o.sign)B.box(-12,-.2,6,4,0,8.5,o.sign);ctower(B,18,30,o.tw||{});jet(B,-28,-14,o.tail);apron(B,-34,-34,30,-4)}
 const AP_K={sto:{roof:"flat",rc:"#9aa3ad",tw:{shape:"slim",col:"#f4f1e8"},tail:"#2648c9"},rey:{roof:"flat",rc:"#5a6f88",wall:"#e8e4da",tw:{shape:"mush"},tail:"#2a6bb0"},
  lon:{roof:"wave",rc:"#c9cdd2",tw:{shape:"torch",col:"#f4f1e8",top:"#7d868f"},tail:"#c13a2a"},par:{roof:"dome",rc:"#e8e4da",wall:"#e8e4da",tw:{shape:"mush",col:"#e8e4da"},tail:"#2648c9"},
  rom:{roof:"wing",rc:"#e8e4da",tw:{col:"#c9a27a"},tail:"#2a7a4a"},bln:{roof:"flat",rc:"#7d868f",wall:"#e4ddcf",tw:{shape:"slim",col:"#c9a27a"},tail:"#e9c46a"},
@@ -2866,20 +2866,25 @@ const PT_K={sto:"cruise:#c13a2a",rey:"fishing",lon:"wharf",rom:"cruise:#2648c9",
 const HUB_ICON=new Set(["apt:par","apt:ist","stn:lon","stn:par","stn:rom","stn:bln","stn:nyc","stn:mum","prt:rom","prt:sfo","prt:hkg"]);
 const HPAL=(v,list)=>list[hash(v+"hub")%list.length];
 function stdAirport(B,o){const wall=o.wall||"#e8ecef";apron(B,-36,-30,30,-6);B.box(-34,0,0,22,14,10,wall,{front:[[.03,.15,.97,.82,"#9fc3dd"],...B.door(.1,.25,"#3d4650")],side:B.win(3,1,GL,.2,.85)});
-  B.box(-35,-1,10,23,15,11.4,o.rc||"#9aa3ad");B.box(-6,-6,4,-2,0,6,"#cfd6de");ctower(B,28,26,{col:(o.tw&&o.tw.col)||"#f4f1e8",top:(o.tw&&o.tw.top)||"#5a6f88"});jet(B,-18,-20,o.tail)}
-function stdStation(B,c,r){B.box(-26,4,0,26,18,13,c,{front:[...B.win(10,2,"#8fa7bf",.2,.85)],side:B.win(3,2,"#8fa7bf",.2,.85)});B.hip(-27,3,27,19,13,4,r,2.5);
+  B.box(-35,-1,10,23,15,11.4,o.rc||"#9aa3ad");B.box(-6,-6,4,-2,0,6,"#cfd6de");ctower(B,30,8,{col:(o.tw&&o.tw.col)||"#f4f1e8",top:(o.tw&&o.tw.top)||"#5a6f88"});jet(B,-28,-14,o.tail)}
+function stdStation(B,c,r,v){B.box(-26,4,0,26,18,13,c,{front:[...B.win(10,2,"#8fa7bf",.2,.85)],side:B.win(3,2,"#8fa7bf",.2,.85)});B.hip(-27,3,27,19,13,4,r,2.5);
   B.box(-8,2,0,8,20,18,c,{front:[[.12,0,.36,.5,"#5a3b2a"],[.64,0,.88,.5,"#5a3b2a"],[.3,.6,.7,.85,"#8fa7bf"]]});B.gable(-8.6,1.4,8.6,20.6,18,5,r,"y");B.disc(0,1.8,15.2,2.2,"#fbf8f1");
-  B.vault(-24,18,24,38,0,11,"#9fc3dd");trainAt(B,32,-8,40,HPAL(c+r,["#c13a2a","#2648c9","#e9c46a","#2a7a4a","#e8ecef","#7a3b8a"]))}
-function trainAt(B,x,y0,len,col){col=col||HPAL(String(x)+len,["#c13a2a","#2648c9","#e9c46a","#2a7a4a","#e8ecef"]);B.box(x-5,y0-2,0,x+5,y0+len+2,1.2,"#bfb59f");
-  B.box(x+2.6,y0,0,x+3.2,y0+len,.3,"#5a5a5a");B.box(x+5.2,y0,0,x+5.8,y0+len,.3,"#5a5a5a");
-  const n=3,cl=len/n-1;for(let k=0;k<n;k++){const a=y0+k*(cl+1);B.box(x+1.6,a,.6,x+7.2,a+cl,6.4,col,{side:[[0,.15,1,.32,"#1b2838"],...Array.from({length:4},(_,i)=>[.06+i*.24,.45,.2+i*.24,.82,"#9fc3dd"])],front:[[.15,.45,.85,.8,"#9fc3dd"]]});B.box(x+1.4,a-.2,6.4,x+7.4,a+cl+.2,7,"#9aa3ad")}
-  for(let k=0;k<2;k++)B.prism(x-3,y0+len-14+k*8,.5,1.2,7,6,"#5a6470");B.box(x-4.6,y0+len-17,7,x+.6,y0+len-2,7.6,"#5a6470")}
+  B.vault(-24,18,24,38,0,11,"#9fc3dd");trainAt(B,32,-8,40,HPAL(c+r,["#c13a2a","#2648c9","#e9c46a","#2a7a4a","#e8ecef","#7a3b8a"]),DIESEL.has(v))}
+/* a platform, a ballasted track and a three-car train: electric trains take power from an overhead wire, diesel trains have roof fans and an exhaust */
+const DIESEL=new Set("nyc mex rio cus cai nbo bkk dxb van sfo bue lax yyz hav scl rak znz chi msy lim ctg uio mao lpb ush acc add dkr lvi tnr cns asp".split(" "));
+function trainAt(B,x,y0,len,col,diesel){col=col||"#c13a2a";B.box(x-5,y0-2,0,x-.6,y0+len+2,1.2,"#bfb59f");B.box(x-.6,y0-2,0,x+8.4,y0+len+2,.25,"#8a8178");
+  for(let y=y0-1;y<y0+len+1;y+=2.4)B.box(x+.6,y,.25,x+6.8,y+.9,.4,"#6b5a45");B.box(x+1.4,y0-2,.4,x+1.9,y0+len+2,.7,"#5a5a5a");B.box(x+5.5,y0-2,.4,x+6,y0+len+2,.7,"#5a5a5a");
+  const n=3,cl=len/n-1,cx=x+3.7;for(let k=0;k<n;k++){const a=y0+k*(cl+1);B.box(x+.9,a,.9,x+6.5,a+cl,6.6,col,{side:[[0,.12,1,.3,"#1b2838"],...Array.from({length:4},(_,i)=>[.06+i*.24,.45,.2+i*.24,.82,"#9fc3dd"])],front:[[.15,.45,.85,.8,"#9fc3dd"]]});B.box(x+.7,a-.2,6.6,x+6.7,a+cl+.2,7.2,"#9aa3ad");
+    const m=a+cl/2;if(diesel){for(const d of [-3,3])B.prism(cx,m+d,1,7.2,7.6,10,"#3d4650");B.prism(cx,m,.45,7.2,9,8,"#2a2f36");B.sphere([cx,m+.4,10.2],.9,"#b9bec4");B.sphere([cx-.4,m+1.4,11.8],1.2,"#c9cdd2");B.sphere([cx-.9,m+2.8,13.6],1.5,"#d8dde3")}
+    else if(k!==1){B.line([cx,m-1.6,7.2],[cx,m,9.6],.16,"#2a2f36");B.line([cx,m+1.6,7.2],[cx,m,9.6],.16,"#2a2f36");B.box(cx-1.6,m-.15,9.6,cx+1.6,m+.15,9.8,"#2a2f36")}}
+  if(!diesel){for(const y of [y0-1,y0+len/2,y0+len+1]){B.prism(x+8.1,y,.35,0,11.5,6,"#7d868f");B.line([x+8.1,y,11],[cx-.6,y,11],.18,"#7d868f")}B.line([cx,y0-2,9.8],[cx,y0+len+2,9.8],.12,"#3d3a3a")}
+  for(let k=0;k<2;k++)B.prism(x-3,y0+len-14+k*8,.5,1.2,7,6,"#5a6470");B.box(x-4.6,y0+len-17,7,x-1,y0+len-2,7.6,"#5a6470")}
 function stdPort(B,hull,r){B.box(-32,6,0,-4,20,9,"#f4f1e8",{front:[[.04,.2,.96,.85,"#9fc3dd"],...B.door(.14,.3,"#3d4650")],side:B.win(2,1,GL,.3,.8)});B.box(-32.5,5.5,9,-3.5,20.5,10,r);
   B.box(-36,-2,0,36,3,1,"#9aa3ad");for(let x=-30;x<=30;x+=10)B.prism(x,-1.6,.7,1,2.2,6,"#3d3a3a");cruise(B,14,-16,hull,40)}
 Object.assign(LMK,{
  apt:(B,v)=>HUB_ICON.has("apt:"+v)&&HUBX["apt:"+v]?HUBX["apt:"+v](B):stdAirport(B,AP_K[v]||{tail:HPAL(v,["#c13a2a","#2648c9","#2a7a4a","#e9c46a"])}),
  stn:(B,v)=>{const [k,c]=(ST_K[v]||"").split(":");if(HUB_ICON.has("stn:"+v)){if(HUBX["stn:"+v])return HUBX["stn:"+v](B);return (ST_M[k]||ST_M.small)(B,c)}
-   stdStation(B,c||HPAL(v,["#e2d5b8","#c9a27a","#b0503a","#e8dcc4","#d8d2c0","#e6cfa4","#e7c98d"]),HPAL(v+"r",["#5a6470","#4a5560","#5f8f7a","#a5432f","#7d868f"]))},
+   stdStation(B,c||HPAL(v,["#e2d5b8","#c9a27a","#b0503a","#e8dcc4","#d8d2c0","#e6cfa4","#e7c98d"]),HPAL(v+"r",["#5a6470","#4a5560","#5f8f7a","#a5432f","#7d868f"]),v)},
  prt:(B,v)=>{const [k,c]=(PT_K[v]||"").split(":");if(HUB_ICON.has("prt:"+v)){if(HUBX["prt:"+v])return HUBX["prt:"+v](B);return (PT_M[k]||PT_M.terminal)(B,c)}
    stdPort(B,c||HPAL(v,["#f4f1e8","#c13a2a","#2648c9","#1b2838","#2a7a4a"]),HPAL(v+"r",["#c13a2a","#2f6fbf","#2a7a4a","#5a6470","#e9c46a"]))}});
 Object.assign(LM_W,{apt:70,stn:66,prt:72,pantheon:44});
@@ -3026,9 +3031,9 @@ Object.assign(ART,{bakery:[30,26],patisserie:[30,26],pharmacy:[30,26],postoffice
   tennis:[60,26],court:[50,40],swissgate:[54,26],filmstudio:[50,32],powerclub:[56,46],barracks:[64,30],footy:[60,26],portcrane:[56,52],atelier:[38,26],lab:[46,34],shipoffice:[44,30],olivegrove:[60,24],track:[64,26],bazaar:[54,26],ceramics:[44,24],glassworks:[46,40],floodgate:[60,28],archboat:[60,30],designstudio:[40,30]});
 
 for(const [ss,ff] of Object.values(LM_MAP))for(const k of [...ss,...ff])if(!ART[k])ART[k]=[LM_W[k.split(":")[0]]||40,40];
-for(const c of CITIES)for(const k of ["apt:","stn:","prt:"])ART[k+c.id]=[{apt:70,stn:80,prt:86}[k.slice(0,3)],40];
+for(const c of CITIES)for(const k of ["apt:","stn:","prt:"])ART[k+c.id]=[{apt:84,stn:80,prt:86}[k.slice(0,3)],40];
 /* ================= Europe's stations modelled on the real buildings (other cities keep the parametric ones) ================= */
-function apron(B,x0,y0,x1,y1){for(let x=x0;x<x1;x+=8)for(let y=y0;y<y1;y+=8)B._poly([[x,y,.3],[Math.min(x1,x+8),y,.3],[Math.min(x1,x+8),Math.min(y1,y+8),.3],[x,Math.min(y1,y+8),.3]],[0,0,1],"#9aa3ad");for(let x=x0+4;x<x1-2;x+=8)B.box(x,(y0+y1)/2-.2,.3,x+4,(y0+y1)/2+.2,.4,"#f4f1e8")}
+function apron(B,x0,y0,x1,y1){return;for(let x=x0;x<x1;x+=8)for(let y=y0;y<y1;y+=8)B._poly([[x,y,.3],[Math.min(x1,x+8),y,.3],[Math.min(x1,x+8),Math.min(y1,y+8),.3],[x,Math.min(y1,y+8),.3]],[0,0,1],"#9aa3ad");for(let x=x0+4;x<x1-2;x+=8)B.box(x,(y0+y1)/2-.2,.3,x+4,(y0+y1)/2+.2,.4,"#f4f1e8")}
 function vapur(B,x,y,hull,funnel,band){B.box(x-14,y,0,x+12,y+8,3.2,hull||"#f4f1e8",{front:[[0,0,1,.3,"#1b2838"]]});B._poly([[x+12,y,0],[x+17,y+4,0],[x+17,y+4,3.2],[x+12,y,3.2]],[1,-1.25,0],hull||"#f4f1e8");B._poly([[x+12,y,3.2],[x+17,y+4,3.2],[x+12,y+8,3.2]],[0,0,1],"#c9a46e");
   B.box(x-12,y+1,3.2,x+8,y+7,6.6,"#f4f1e8",{front:B.win(8,1,"#9fc3dd",.3,.8)});B.box(x+3,y+2,6.6,x+8,y+6,9,"#f4f1e8",{front:[[.1,.3,.9,.85,"#9fc3dd"]]});B.prism(x-3,y+4,1.4,6.6,12,10,funnel||"#1b2838");if(band)B.prism(x-3,y+4,1.45,9.6,10.8,10,band)}
 function cruise(B,x,y,hull,len=40){len=Math.max(len,52);const x0=x-len/2,x1=x+len/2-6,W="#f4f1e8",dark=hull&&hull!=="#f4f1e8"?hull:"#1d3f8a";
@@ -3041,25 +3046,25 @@ function cruise(B,x,y,hull,len=40){len=Math.max(len,52);const x0=x-len/2,x1=x+le
 const HUBX={
  /* ---- airports ---- */
  "apt:sto":(B)=>{apron(B,-36,-30,30,-6);B.box(-34,0,0,22,14,10,"#e8ecef",{front:[[.03,.15,.97,.85,"#9fc3dd"],...B.door(.1,.25,"#3d4650")],side:B.win(3,1,GL,.2,.85)});B.box(-35,-1,10,23,15,11.2,"#cfd6de");
-   B.box(-6,-6,4,-2,0,6,"#cfd6de");B.prism(28,26,2,0,46,12,"#f4f1e8");B.prism(28,26,4.6,46,50,12,"#3d4650");B.prism(28,26,4.2,50,51,12,"#f4f1e8");B.line([28,26,51],[28,26,56],.25,"#9aa3ad");jet(B,-18,-20,"#1d3f8a")},
+   B.box(-6,-6,4,-2,0,6,"#cfd6de");B.prism(28,26,2,0,46,12,"#f4f1e8");B.prism(28,26,4.6,46,50,12,"#3d4650");B.prism(28,26,4.2,50,51,12,"#f4f1e8");B.line([28,26,51],[28,26,56],.25,"#9aa3ad");jet(B,-28,-14,"#1d3f8a")},
  "apt:rey":(B)=>{apron(B,-36,-30,30,-6);B.box(-30,0,0,20,16,9,"#d8dde3",{front:[[.04,.12,.96,.9,"#9fc3dd"],...B.door(.1,.3,"#3d4650")]});for(let i=0;i<5;i++)B.gable(-30+i*10,0,-20+i*10,16,9,4,"#5a6f88","y");
-   ctower(B,26,26,{shape:"mush",col:"#e8e4da",top:"#3d4650"});jet(B,-16,-20,"#1d3f8a");B.box(-30,-2,0,-24,0,3,"#f4c430")},
+   ctower(B,26,26,{shape:"mush",col:"#e8e4da",top:"#3d4650"});jet(B,-28,-14,"#1d3f8a");B.box(-30,-2,0,-24,0,3,"#f4c430")},
  "apt:lon":(B)=>{apron(B,-38,-30,32,-6);B.box(-34,0,0,26,22,10,"#cfd6de",{front:[[.02,.08,.98,.95,"#9fc3dd"],...B.door(.1,.25,"#3d4650")],side:B.win(4,1,"#9fc3dd",.1,.9)});B.vault(-36,-2,28,24,10,4,"#e8ecef");
-   for(let x=-30;x<=22;x+=8)B.line([x,-1.5,0],[x,-1.5,11],.5,"#9aa3ad");B.prism(32,28,2,0,40,10,"#f4f1e8");B.cone(32,28,2,40,0.01,10,"#f4f1e8");B.prism(32,28,5,40,44,10,"#3d4650");B.cone(32,28,5,44,4,10,"#cfd6de");jet(B,-16,-20,"#1b2838")},
+   for(let x=-30;x<=22;x+=8)B.line([x,-1.5,0],[x,-1.5,11],.5,"#9aa3ad");B.prism(32,28,2,0,40,10,"#f4f1e8");B.cone(32,28,2,40,0.01,10,"#f4f1e8");B.prism(32,28,5,40,44,10,"#3d4650");B.cone(32,28,5,44,4,10,"#cfd6de");jet(B,-28,-14,"#1b2838")},
  "apt:par":(B)=>{apron(B,-40,-34,34,-14);B.prism(-6,8,16,0,14,24,"#b9b4aa");B.prism(-6,8,7,14,14.6,24,"#3d4650");for(let i=0;i<6;i++){const a=i/6*6.283;B.line([-6+Math.cos(a)*4,8+Math.sin(a)*4,13],[-6+Math.cos(a)*14,8+Math.sin(a)*14,4],.9,"#9fc3dd")}
-   for(const [x,y] of [[24,-6],[26,22]]){B.prism(x,y,6,0,6,16,"#b9b4aa");B.line([x,y,1],[-6,8,1],.8,"#9aa3ad")}ctower(B,30,36,{shape:"slim",col:"#e8e4da"});jet(B,-24,-26,"#1d3f8a")},
+   for(const [x,y] of [[24,-6],[26,22]]){B.prism(x,y,6,0,6,16,"#b9b4aa");B.line([x,y,1],[-6,8,1],.8,"#9aa3ad")}ctower(B,30,36,{shape:"slim",col:"#e8e4da"});jet(B,-28,-14,"#1d3f8a")},
  "apt:rom":(B)=>{apron(B,-36,-30,32,-6);B.box(-34,0,0,26,18,9,"#ece8df",{front:[[.03,.12,.97,.9,"#9fc3dd"],...B.door(.1,.3,"#3d4650")]});for(let i=0;i<6;i++)B.vault(-36+i*10.4,-3,-25.6+i*10.4,20,9,i%2?2:4,"#f4f1e8");
-   ctower(B,30,28,{shape:"slim",col:"#b9b4aa",top:"#c13a2a"});jet(B,-16,-20,"#2f9e5b")},
+   ctower(B,30,28,{shape:"slim",col:"#b9b4aa",top:"#c13a2a"});jet(B,-28,-14,"#2f9e5b")},
  "apt:bln":(B)=>{apron(B,-36,-30,30,-8);B.box(-30,2,0,22,18,12,"#cfd6de",{front:[[.03,.1,.97,.92,"#9fc3dd"],...B.door(.1,.25,"#3d4650")]});B.box(-36,-4,12,28,22,14,"#7d8184");
-   for(let x=-34;x<=26;x+=6)B.prism(x,-3,.5,0,12,6,"#e8ecef");ctower(B,28,28,{shape:"slim",col:"#9aa3ad",top:"#3d4650"});jet(B,-14,-22,"#c13a2a")},
+   for(let x=-34;x<=26;x+=6)B.prism(x,-3,.5,0,12,6,"#e8ecef");ctower(B,28,28,{shape:"slim",col:"#9aa3ad",top:"#3d4650"});jet(B,-28,-14,"#c13a2a")},
  "apt:bcn":(B)=>{apron(B,-36,-30,30,-6);B.box(-34,0,0,22,16,12,"#e8ecef",{front:[[.03,.1,.97,.9,"#8fb8cf"],...B.door(.1,.25,"#3d4650")]});B._poly([[-38,-6,15],[26,-6,15],[26,18,12],[-38,18,12]],[0,-.12,1],"#f4f1e8");
-   for(let x=-34;x<=22;x+=7)B.prism(x,-5,.6,0,15,6,"#cfd6de");ctower(B,30,26,{shape:"torch",col:"#f4f1e8",top:"#9fc3dd"});jet(B,-16,-20,"#f4c430")},
+   for(let x=-34;x<=22;x+=7)B.prism(x,-5,.6,0,15,6,"#cfd6de");ctower(B,30,26,{shape:"torch",col:"#f4f1e8",top:"#9fc3dd"});jet(B,-28,-14,"#f4c430")},
  "apt:ath":(B)=>{apron(B,-36,-30,30,-6);B.box(-32,0,0,22,16,10,"#efe6d2",{front:[[.03,.12,.97,.85,"#9fc3dd"],...B.door(.1,.3,"#3d4650")]});for(let x=-30;x<=20;x+=5)B.box(x,-2,10,x+.6,18,13,"#9aa3ad");B.box(-33,-2,13,23,18,13.6,"#cfd6de");
-   ctower(B,28,28,{col:"#efe6d2",top:"#2f6fbf"});jet(B,-16,-20,"#2f6fbf")},
+   ctower(B,28,28,{col:"#efe6d2",top:"#2f6fbf"});jet(B,-28,-14,"#2f6fbf")},
  "apt:ist":(B)=>{apron(B,-38,-30,30,-6);B.box(-34,0,0,22,20,10,"#e8ecef",{front:[[.03,.1,.97,.9,"#9fc3dd"],...B.door(.1,.25,"#3d4650")]});B.box(-35,-1,10,23,21,11,"#cfd6de");for(let i=0;i<5;i++)for(let j=0;j<2;j++)B.sphere([-28+i*11,5+j*10,11],2.4,"#bfe0f2");
-   const x=32,y=6;B.prism(x,y,2.6,0,34,10,"#e8ecef");for(let k=0;k<6;k++){B.prism(x,y,2.6+k*1.1,34+k*1.6,35.6+k*1.6,12,k%2?"#cfd6de":"#e8ecef")}B.prism(x,y,7,43.6,47,12,"#3d6b8a");B.cone(x,y,7.4,47,3,12,"#e8ecef");B.sphere([x,y,51],.9,"#c13a2a");jet(B,-16,-20,"#c13a2a")},
+   const x=32,y=6;B.prism(x,y,2.6,0,34,10,"#e8ecef");for(let k=0;k<6;k++){B.prism(x,y,2.6+k*1.1,34+k*1.6,35.6+k*1.6,12,k%2?"#cfd6de":"#e8ecef")}B.prism(x,y,7,43.6,47,12,"#3d6b8a");B.cone(x,y,7.4,47,3,12,"#e8ecef");B.sphere([x,y,51],.9,"#c13a2a");jet(B,-28,-14,"#c13a2a")},
  "apt:ven":(B)=>{apron(B,-36,-30,30,-6);B.box(-32,0,0,22,16,10,"#e8ecef",{front:[[.03,.12,.97,.9,"#9fc3dd"],...B.door(.1,.3,"#3d4650")]});for(let i=0;i<4;i++)B.vault(-34+i*14.5,-3,-19.5+i*14.5,19,10,i%2?2.5:4.5,"#f4f1e8");
-   ctower(B,28,26,{col:"#e8e4da"});jet(B,-16,-20,"#2648c9");B.box(-40,4,0,-34,30,1,"#a5794d");B.box(-46,10,0,-41,22,2.4,"#a5794d",{front:[[0,0,1,.4,"#f4f1e8"]]})},
+   ctower(B,28,26,{col:"#e8e4da"});jet(B,-28,-14,"#2648c9");B.box(-40,4,0,-34,30,1,"#a5794d");B.box(-46,10,0,-41,22,2.4,"#a5794d",{front:[[0,0,1,.4,"#f4f1e8"]]})},
  /* ---- railway stations ---- */
  "stn:sto":(B)=>{const c="#e7c98d";B.box(-32,4,0,32,18,14,c,{front:[...B.win(12,2,"#8fa7bf",.18,.85),...B.door(.12,.42,"#5a3b2a")],side:B.win(3,2,"#8fa7bf",.18,.85)});B.hip(-33,3,33,19,14,4,"#5f8f7a",2.5);
    B.box(-8,2,0,8,20,20,c,{front:[...B.win(3,1,"#8fa7bf",.6,.88),[.3,0,.7,.55,"#5a3b2a"]]});B.hip(-9,1,9,21,20,6,"#5f8f7a",2);B.disc(0,1.8,16,2.2,"#fbf8f1");
@@ -3354,7 +3359,7 @@ function buildWorld(c){
   const walkable=(x,y)=>x>4&&y>4&&x<m.w-4&&y<m.h-4&&(onBridge(x,y)||(isLand(x,y)&&!inBlock(x,y,2.5)));
   const trees=[],Rt=rng(hash(c.id+"trees"));
   for(const p of m.parks){const xs=p.map(q=>q[0]),ys=p.map(q=>q[1]);for(let x=Math.min(...xs);x<Math.max(...xs);x+=17)for(let y=Math.min(...ys);y<Math.max(...ys);y+=17){
-    const tx=x+Rt()*10,ty=y+Rt()*10;if(pip([tx,ty],p)&&isLand(tx,ty)&&!doors.some(d=>dist2(d,[tx,ty])<32)&&!segs.some(s=>segDist([tx,ty],s[0],s[1])<12))trees.push([tx,ty,.8+Rt()*.5])}}
+    const tx=x+Rt()*10,ty=y+Rt()*10;if(tx>9&&tx<m.w-9&&ty>30&&ty<m.h-5&&pip([tx,ty],p)&&isLand(tx,ty)&&!doors.some(d=>dist2(d,[tx,ty])<32)&&!segs.some(s=>segDist([tx,ty],s[0],s[1])<12))trees.push([tx,ty,.8+Rt()*.5])}}
   const ripples=[],Rw=rng(7);for(let i=0;i<m.w*m.h/700;i++){const x=Rw()*m.w,y=Rw()*m.h;if(!isLand(x,y)&&!onBridge(x,y))ripples.push([x,y,5+Rw()*8,Rw()*6])}
   const roofs=ROOFS[c.st]||ROOFS.euro;for(const b of blocks){b.push(roofs[Math.floor(b[4]*roofs.length)]);b.push(8+b[4]*10*(c.st==="modern"?3:c.st==="asia"?2:1))}
   return m.world={cs,blocks,isLand,walkable,segs,trees,ripples};
@@ -5448,7 +5453,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 83 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 85 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
