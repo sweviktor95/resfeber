@@ -1263,11 +1263,11 @@ const pIcon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const WALK_SPEED=75; // meter per minut
 const dist2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 function sthlmMap(){
-  const SK=.38,P=(lon,lat)=>[(lon-18.048)*56900*SK,(59.336-lat)*111320*SK], poly=a=>a.map(p=>P(p[0],p[1]));
+  const SK=.5,P=(lon,lat)=>[(lon-18.048)*56900*SK,(59.336-lat)*111320*SK], poly=a=>a.map(p=>P(p[0],p[1]));
   const N={cen:[18.0585,59.3305],tegel:[18.0590,59.3298],sthus:[18.0543,59.3276],sergel:[18.0640,59.3325],vasab_n:[18.0648,59.3293],vasab_s:[18.0667,59.3263],
-    norrbro_n:[18.0705,59.3296],helge:[18.0700,59.3278],slott:[18.0717,59.3266],stort:[18.0707,59.3250],vlg:[18.0690,59.3237],olg:[18.0740,59.3238],jtorg:[18.0718,59.3222],
-    slussen_n:[18.0712,59.3214],slussen:[18.0718,59.3190],rhb:[18.0668,59.3254],riddarh:[18.0638,59.3247],kungstr:[18.0712,59.3312],grand:[18.0760,59.3297],blasie:[18.0795,59.3289],
-    skepps_n:[18.0828,59.3271],hostel:[18.0822,59.3259],nybro:[18.0772,59.3326],strand:[18.0880,59.3326],djbro_n:[18.0975,59.3323],djbro_s:[18.0975,59.3298],vasa:[18.0928,59.3280],arlanda:[18.0760,59.3352],stadsg:[18.0830,59.3188]};
+    norrbro_n:[18.0704,59.3298],helge:[18.0699,59.3280],slott:[18.0722,59.3262],stort:[18.0707,59.3250],vlg:[18.0690,59.3237],olg:[18.0740,59.3238],jtorg:[18.0718,59.3222],
+    slussen_n:[18.0712,59.3214],slussen:[18.0718,59.3190],rhb:[18.0668,59.3254],riddarh:[18.0638,59.3247],kungstr:[18.0716,59.3318],grand:[18.0760,59.3297],blasie:[18.0795,59.3289],
+    skepps_n:[18.0828,59.3271],hostel:[18.0822,59.3255],nybro:[18.0772,59.3326],strand:[18.0880,59.3326],djbro_n:[18.0975,59.3323],djbro_s:[18.0975,59.3298],vasa:[18.0928,59.3280],arlanda:[18.0760,59.3352],stadsg:[18.0830,59.3188]};
   const nodes={};for(const k in N)nodes[k]=P(N[k][0],N[k][1]);
   const E=[["cen","tegel"],["tegel","sthus",1],["cen","sergel"],["cen","vasab_n"],["sergel","kungstr"],["vasab_n","norrbro_n"],["norrbro_n","kungstr"],["vasab_n","vasab_s",1],
     ["vasab_s","slott"],["vasab_s","rhb"],["rhb","riddarh",1],["rhb","vlg"],["norrbro_n","helge",1],["helge","slott",1],["slott","stort"],["stort","vlg"],["stort","olg"],["slott","olg"],
@@ -1383,8 +1383,21 @@ function genMap(c){
       let best=null;for(const [k,d] of Object.entries(nodes)){if(k[0]==="q")continue;for(let ai=0;ai<8;ai++){const a=ai*Math.PI/4,ux=Math.cos(a),uy=Math.sin(a);let t=0;while(t<160&&!isWater(d[0]+ux*t,d[1]+uy*t))t+=3;if(t<30||t>=160)continue;
         const end=[d[0]+ux*(t-12),d[1]+uy*(t-12)];if(end[0]<20||end[1]<20||end[0]>W-20||end[1]>H-20)continue;
         if(Object.entries(nodes).some(([kk,q])=>kk!==k&&segDist(q,d,end)<28))continue;if(E.some(([u,v])=>cross(d,end,nodes[u],nodes[v])))continue;
-        if(pois.some(q=>q!==wp&&dist2(nodes[q.node],end)<62))continue;const sc=t+(Math.abs(uy)>.5?0:8);if(!best||sc<best.sc)best={k,end,sc}}}
+        if(pois.some(q=>q!==wp&&dist2(nodes[q.node],end)<95))continue;const sc=t+(Math.abs(uy)>.5?0:8);if(!best||sc<best.sc)best={k,end,sc}}}
       if(best){const nk="q"+(qi++)+"_0_0";nodes[nk]=best.end;E.push([best.k,nk]);wp.node=nk}}}
+  // nothing may stand on anything else: no building over another building or over an entry circle
+  {const KYv=Math.sin(40*Math.PI/180),k2=1.25/SPR,WKS=["ferry","ship","harbor","pier","paddle","ferryboat","waterfront","prt","beach","lighthouse","lighthouse_rock","reef","opera","memorial","palm","fountainshow","canal","floatmarket","suspension","bascule","archbridge","stonebridge","bridgecity","water","waterfall"];
+    const art={};const kindOf=p=>{const k=poiKind(p,c);if(!(k in art)){try{art[k]=modelFor(k,c)}catch(e){art[k]=null}}return k};
+    const spr=(p,nk)=>{const k=kindOf(p),A=art[k],d=nodes[nk];if(!A)return null;const back=k==="ship"?-2:14,l=d[0]-A.ax*k2,t=(d[1]-back)*KYv-A.ay*k2,w=A.cv.width*k2,hh=A.cv.height*k2,m=Math.min(6,w*.08);return [l+m,t+m,l+w-m,t+hh-m*.5]};
+    const circ=nk=>{const d=nodes[nk];return [d[0]-17,d[1]*KYv-17*KYv,d[0]+17,d[1]*KYv+17*KYv]};
+    const hit=(a,b)=>a&&b&&a[0]<b[2]&&a[2]>b[0]&&a[1]<b[3]&&a[3]>b[1];
+    const bad=(p,nk,ign)=>{const sp=spr(p,nk),me=circ(nk);for(const q of pois){if(q===p||q===ign)continue;const qs=spr(q,q.node),qc=circ(q.node);if(hit(sp,qc)||hit(sp,qs)||hit(qs,me))return true}return false};
+    const fixed=p=>(p.type==="travel"&&p.mode==="boat")||WKS.includes(String(kindOf(p)).split(":")[0])||/^[pq]/.test(p.node);
+    const free=()=>[...new Set([...doors,...spare])].filter(k=>nodes[k]&&!pois.some(q=>q.node===k));
+    for(let round=0;round<8;round++){let moved=0;
+      for(const p of pois){if(!bad(p,p.node))continue;const movers=fixed(p)?pois.filter(q=>!fixed(q)&&(hit(spr(p,p.node),circ(q.node))||hit(spr(p,p.node),spr(q,q.node))||hit(spr(q,q.node),circ(p.node)))):[p];
+        for(const mv of movers){const opts=shuffle(free());const ok=opts.find(k=>!bad(mv,k,null));if(ok){mv.node=ok;moved++}else{const sw=pois.find(q=>q!==mv&&!fixed(q)&&!bad(mv,q.node,q)&&!bad(q,mv.node,mv));if(sw){const t=sw.node;sw.node=mv.node;mv.node=t;moved++}}}}
+      if(!moved)break}}
   const start=(pois.find(p=>p.type==="travel"&&p.mode==="train")||pois[0]).node;
   return {isWater:(x,y)=>isWater(x,y),w:W,h:H,bg:"land",land:[],parks,deco:[],blocks:[],water,labels:[],nodes,E,pois,start};
 }
@@ -2438,7 +2451,11 @@ function buildModel(kind,c){
     door(w=.14,h=.42,col="#4a3020",u=.5){return [[u-w/2,0,u+w/2,h,col]]},
     _poly:(pts,n,col)=>poly(pts,n,col)
   };
-  {const [base,vr]=String(kind).split(/:(.*)/s);if(LMK[base])LMK[base](B,vr);else (MODELS[kind]||MODELS.museum)(B,wall,c)}
+  {const [base,vr]=String(kind).split(/:(.*)/s);
+    // no water slabs under the models: the street map already shows where the water is
+    const WATERC=["#57b4e6","#3fb4d8","#3f9ac0","#8a7a4a","#7a9a6a","#e89aa8","#3d2a20","#c9a46e","#86b8d2"],box0=B.box;
+    B.box=(x0,y0,z0,x1,y1,z1,col,o)=>{if(z0<=0&&z1<=1.2&&WATERC.includes(col)&&(x1-x0)>20)return;return box0(x0,y0,z0,x1,y1,z1,col,o)};
+    if(LMK[base])LMK[base](B,vr);else (MODELS[kind]||MODELS.museum)(B,wall,c);B.box=box0}
   // render
   const P=p=>[dot(p,VR)*SPR,-dot(p,VU)*SPR];let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
   const grow=p=>{const [x,y]=P(p);mnx=Math.min(mnx,x);mny=Math.min(mny,y);mxx=Math.max(mxx,x);mxy=Math.max(mxy,y)};
@@ -2811,6 +2828,16 @@ Object.assign(LMK,{
 Object.assign(LM_W,{apt:70,stn:66,prt:72,pantheon:44});
 /* sharper versions of the most famous landmarks */
 Object.assign(LMK,{
+ arena:(B,v)=>{const col=v||"#d9bf8f",n=28,R=[24,18],c0=[0,14],P=(t,s)=>[c0[0]+Math.cos(t)*R[0]*s,c0[1]+Math.sin(t)*R[1]*s];
+   B.box(-20,2,0,20,26,.4,"#c9a46e");
+   for(let k=0;k<n;k++){const a=k/n*6.283,b=(k+1)/n*6.283,broken=Math.sin((a+b)/2)>.2&&Math.cos((a+b)/2)>.1,h0=broken?12+((k*7)%3)*2:22;
+     const [ax,ay]=P(a,1),[bx,by]=P(b,1),nx=(ax+bx)/2-c0[0],ny=(ay+by)/2-c0[1];
+     B._poly([[ax,ay,0],[bx,by,0],[bx,by,h0],[ax,ay,h0]],[nx,ny,0],col);B._poly([[ax,ay,0],[bx,by,0],[bx,by,h0],[ax,ay,h0]],[-nx,-ny,0],shadeC(col,.8));
+     for(const z of [2,8,14])if(z+4<h0){const f=t=>[ax+(bx-ax)*t+nx*.02,ay+(by-ay)*t+ny*.02];const [p0x,p0y]=f(.25),[p1x,p1y]=f(.75);B._poly([[p0x,p0y,z],[p1x,p1y,z],[p1x,p1y,z+4],[p0x,p0y,z+4]],[nx,ny,0],"#6b5a44")}
+     const [ix,iy]=P(a,.6),[jx,jy]=P(b,.6);B._poly([[ix,iy,0],[jx,jy,0],[jx,jy,8],[ix,iy,8]],[-nx,-ny,0],shadeC(col,.7))}},
+ opera:(B)=>{B.box(-30,2,0,30,26,4,"#c98a5a");B.box(-30,1.9,0,30,2,4,"#b07a4a");
+   const shell=(x,y,s,lean)=>{const tip=[x+lean,y+s*.4,4+s*2.1];B._poly([[x-s*.9,y,4],[x+s*.9,y,4],tip],[0,-1,.35],"#fbfbf6");B._poly([[x+s*.9,y,4],[x+s*.6,y+s*1.6,4],tip],[1,.15,.35],"#ecebe4");B._poly([[x-s*.9,y,4],tip,[x-s*.6,y+s*1.6,4]],[-1,.15,.35],"#e2e1da")};
+   shell(-18,8,6.5,1);shell(-9,10,8,1.5);shell(1,12,9,2);shell(13,9,7,1.5);shell(22,12,5.5,1)},
  lattice:(B,v)=>{const col=v||"#8b6a4a",H=62,leg=(sx,sy)=>{let prev=null;for(let i=0;i<=12;i++){const t=i/12,r=16*Math.pow(1-t,1.8)+1.2,p=[sx*r,12+sy*r,t*H*.82];if(prev)B.line(prev,p,1.5-t*.9,col);prev=p}};
    for(const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]])leg(sx,sy);
    for(const s of [-1,1]){const P=k=>[-12+k*2,12+s*12,9-Math.sin(k/12*Math.PI)*5];for(let k=0;k<12;k++)B.line(P(k),P(k+1),.6,col);const Q=k=>[12*s,0+k*2,9-Math.sin(k/12*Math.PI)*5];for(let k=0;k<12;k++)B.line(Q(k),Q(k+1),.6,col)}
@@ -4862,7 +4889,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 71 · 18 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 72 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
@@ -4912,7 +4939,7 @@ function intro(saved){
   wireHand(m);m.querySelector("#go").onclick=()=>{if(!getHand())setHand("right");closeModal()};
 }
 const saved=load();if(saved)S=saved;else newGame();
-if(S.film==null)S.film=12;if(S.mapv!==12){S.xy={};S.found2={};S.hub=null;S.mapv=12;if(!CITIES.includes(BY[S.cur]))S.cur="sto";S.missions=S.missions.filter(id=>CITIES.includes(BY[id]));fillMissions();save()}
+if(S.film==null)S.film=12;if(S.mapv!==13){S.xy={};S.found2={};S.hub=null;S.mapv=13;if(!CITIES.includes(BY[S.cur]))S.cur="sto";S.missions=S.missions.filter(id=>CITIES.includes(BY[id]));fillMissions();save()}
 render();setSoundUI();intro(!!saved);w3Start();
 </script>
 
