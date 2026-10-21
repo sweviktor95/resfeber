@@ -184,7 +184,7 @@ main{position:relative;min-height:0}
 .cmap{position:fixed;inset:0;z-index:60;background:#f5eedb;touch-action:none}.cmap canvas{position:absolute;inset:0;width:100%;height:100%}
 .cmap-top{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:max(12px,env(safe-area-inset-top,0px));right:64px;background:#1b2838;color:#fbf8f1;border-radius:14px;padding:9px 14px;font:600 13px Figtree,system-ui,sans-serif;display:flex;flex-direction:column;gap:2px;box-shadow:0 4px 14px #0003}.cmap-top b{font:800 17px Unbounded,sans-serif}
 .cmap-btns{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:max(12px,env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}.cmap-btns button{width:42px;height:42px;border-radius:12px;border:1px solid #0002;background:#fbf8f1;font:800 20px Figtree,system-ui,sans-serif;color:#1b2838;box-shadow:0 2px 6px #0003}
-[hidden]{display:none!important}#drinkbtn{position:relative}.walk .joy{left:50%;right:auto;margin-left:-66px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}.walkhint{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(158px + env(safe-area-inset-bottom,0px));text-align:center}.factpic{position:relative;width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:#e9e1cc;margin:10px 0 4px}.factpic canvas,.factpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}.factpic .cr{position:absolute;right:6px;bottom:5px;font-size:10px;color:#fff;background:#0007;padding:1px 6px;border-radius:6px}#tab-bag>.inner:first-child{padding-top:calc(var(--top) + 8px)}#tab-map .mapback,#mapback{margin-top:0}.hud .bar i.low{background:#ff5b4a!important}
+[hidden]{display:none!important}#drinkbtn{position:relative}.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}.badge{display:grid;justify-items:center;gap:2px;padding:10px 4px;border-radius:14px;border:2px dashed var(--line);background:var(--paper);opacity:.55;filter:grayscale(1);text-align:center}.badge.on{opacity:1;filter:none;border:2px solid #d9a441;background:linear-gradient(#fff8e6,#f6e3b4);box-shadow:0 2px 6px #0002}.badge .ico{font-size:30px;line-height:1}.badge b{font-size:13px}.badge small{font-size:11px;color:var(--muted)}.badge.big{width:150px;margin:12px auto}.badge.big .ico{font-size:48px}.walk .joy{left:50%;right:auto;margin-left:-66px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}.walkhint{left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(158px + env(safe-area-inset-bottom,0px));text-align:center}.factpic{position:relative;width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:#e9e1cc;margin:10px 0 4px}.factpic canvas,.factpic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}.factpic .cr{position:absolute;right:6px;bottom:5px;font-size:10px;color:#fff;background:#0007;padding:1px 6px;border-radius:6px}#tab-bag>.inner:first-child{padding-top:calc(var(--top) + 8px)}#tab-map .mapback,#mapback{margin-top:0}.hud .bar i.low{background:#ff5b4a!important}
 .setlist{display:grid;gap:10px;margin-top:12px}.setlist .row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:600}#drinkbtn[disabled]{opacity:.45}#drinkn{position:absolute;right:-5px;top:-5px;min-width:18px;height:18px;border-radius:9px;background:#e8742a;color:#fff;font:800 11px/18px Figtree,system-ui,sans-serif;text-align:center;padding:0 4px}
 .mapctl button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-size:20px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px #0002}
 .conts{position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.conts::-webkit-scrollbar{display:none}
@@ -1043,8 +1043,17 @@ const TI = {EU:0,AF:1,AS:2,OC:3,SA:4,NA:5};
 const WIN_XP = 2000, MISSION_XP = 100, CERT_XP = 25, TIP_COST = 150, DRINK = {price:30,energy:20}, MAXDRINK=5;
 const contDone = k => CITIES.filter(c=>c.t===k).every(c=>(S.cityDone||[]).includes(c.id));
 const unlocked = () => {let n=1;while(n<TIERS.length&&contDone(TIERS[n-1].k))n++;const seen=Math.max(0,...(S.visited||[]).map(id=>BY[id]?TI[BY[id].t]+1:1));return Math.max(n,seen)};
-const rankIdx = () => TIERS.filter(t=>S.xp>=t.xp).length;
-const rankName = () => S.xp>=WIN_XP?"Ordförande":TIERS[rankIdx()-1].rank;
+/* rank = finished continents; every finished continent gives a badge in the club house */
+const RANKS=["Novis","Resenär","Upptäckare","Äventyrare","Expeditionsledare","Världsresenär","Ordförande"];
+const BADGE={EU:"🏰",AF:"🦁",AS:"🏯",OC:"🦘",SA:"🦙",NA:"🗽"};
+const contCount = () => {let n=0;while(n<TIERS.length&&contDone(TIERS[n].k))n++;return n};
+const rankIdx = () => contCount();
+/* wages follow the city's price level and the trade */
+const CITY_PAY={sto:1.1,got:1.05,kir:1.15,osl:1.35,brg:1.3,cph:1.3,hel:1.1,rey:1.35,tos:1.3,tku:1,lon:1.35,par:1.25,rom:1.05,bln:1.05,bcn:1,ams:1.2,ath:.8,prg:.85,vie:1.1,lis:.85,ist:.7,dub:1.25,ven:1.1,bud:.75,mad:1,muc:1.2,nyc:1.4,mex:.75,rio:.8,cus:.7,cai:.65,nbo:.75,cpt:.85,mum:.7,bkk:.75,dxb:1.3,pek:.9,tyo:1.15,syd:1.3,van:1.15,sfo:1.4,bue:.75,agr:.6,sin:1.3,hkg:1.25,lax:1.3,was:1.25,yyz:1.15,hav:.6,scl:.85,rak:.7,znz:.65,sel:1.05,sha:1,kyo:1.05,mel:1.2,akl:1.1,chi:1.2,msy:1,lim:.75,ctg:.75,uio:.7,mao:.75,lpb:.65,ush:.95,acc:.7,add:.6,dkr:.7,lvi:.7,tnr:.6,cns:1.1,asp:1.15,per:1.25,wlg:1.05,zqn:1.15,hnl:1.3,ppt:1.2};
+const JOB_PAY={guide:.9,cook:.95,nurse:1.05,journo:1.05,carp:1.1,meteo:1.2,libr:.9,pilot:1.4,art:.9,farm:.85};
+const jobPay=(k,c)=>r10(tierOf(c).pay*(CITY_PAY[c.id]||1)*((JOBS[k]&&JOBS[k].w)||JOB_PAY[k]||1));
+const rankName = () => RANKS[contCount()];
+const badgesHtml = () => `<div class="badges">${TIERS.map((t,i)=>{const got=contDone(t.k),n=CITIES.filter(c=>c.t===t.k&&(S.cityDone||[]).includes(c.id)).length;return `<div class="badge${got?" on":""}"><span class="ico">${BADGE[t.k]}</span><b>${t.name}</b><small>${got?"Klarad":n+" av 10 städer"}</small></div>`}).join("")}</div>`;
 const tierOf = c => TIERS[TI[c.t]];
 
 /* ================= Helpers ================= */
@@ -1105,9 +1114,7 @@ function fillMissions(){
   }
 }
 function gainXP(n){
-  const before=rankIdx(), wasWon=S.xp>=WIN_XP;S.xp+=n;const after=rankIdx();
-  if(after>before){EV.push({type:"promo",tier:after-1});S.missions=S.missions.slice(0,2);fillMissions();}
-  if(!wasWon&&S.xp>=WIN_XP){S.won=true;EV.push({type:"win"})}
+  S.xp+=n;
 }
 function spendEnergy(n){S.energy=Math.max(-1,Math.min(100,S.energy-n));
   if(S.energy<=0){const bill=Math.min(S.money,600);S.money-=bill;S.t+=12;S.energy=45;EV.push({type:"faint",bill})}}
@@ -1819,7 +1826,7 @@ const catDot=k=>{const cat=CATS[JOB_CAT[k]];return cat?`<span class="catdot" sty
 function jobsDone(c){return ((S.jobsDone||{})[c.id]||[])}
 function jobTally(c){const js=cityJobs(c),d=jobsDone(c);return `<div class="tally"><b>Jobb i ${esc(c.n)}: ${js.filter(k=>d.includes(k)).length} av ${js.length} klarade</b>${js.map(k=>`<span class="${d.includes(k)?"on":""}" style="--cc:${CATS[JOB_CAT[k]].col}">${d.includes(k)?"✓ ":""}${JOBS[k].n}</span>`).join("")}</div>`}
 function markJobDone(k){const c=here();S.jobsDone=S.jobsDone||{};const d=S.jobsDone[c.id]=S.jobsDone[c.id]||[];if(d.includes(k))return "";d.push(k);
-  const all=cityJobs(c).every(j=>d.includes(j));if(all){gainXP(50);S.money+=r10(tierOf(c).pay);return `<div class="fact"><b>Alla fem jobb i ${esc(c.n)} klarade!</b> Bonus: ${fmt(r10(tierOf(c).pay))} kr och 50 XP.</div>`}
+  const all=cityJobs(c).every(j=>d.includes(j));if(all){gainXP(50);S.money+=r10(tierOf(c).pay*(CITY_PAY[c.id]||1));return `<div class="fact"><b>Alla fem jobb i ${esc(c.n)} klarade!</b> Bonus: ${fmt(r10(tierOf(c).pay*(CITY_PAY[c.id]||1)))} kr och 50 XP.</div>`}
   return `<div class="fact">Jobbet räknas som klarat. ${d.length} av 5 jobb klarade i ${esc(c.n)}.</div>`}
 /* ================= Trades that fit the place: one per category, chosen for each city ================= */
 Object.assign(JOBS,{
@@ -2219,7 +2226,7 @@ function poiStatus(p){const c=here(),t=tierOf(c),cm=cafeMode();
     case "travel":return {s:{plane:"Flyg till andra städer",train:"Tåg till andra städer",boat:"Båtar till andra hamnar"}[p.mode]||"Resor"};
     case "lux":return {s:`${fmt(t.lux)} kr · full energi`};
     case "hostel":return {s:`${fmt(t.hostel)} kr · +70 energi`};
-    case "job":{const cert=S.certs.includes(p.job),pay=r10(t.pay);return jobOpen()?{s:`Jobb som ${JOBS[p.job].n.toLowerCase()} · ${fmt(pay)} kr${cert?" ★":""}`}:{s:`${JOBS[p.job].n} · stängt till 06:00`,cl:1}}
+    case "job":{const cert=S.certs.includes(p.job),pay=jobPay(p.job,c);return jobOpen()?{s:`Jobb som ${JOBS[p.job].n.toLowerCase()} · ${fmt(pay)} kr${cert?" ★":""}`}:{s:`${JOBS[p.job].n} · stängt till 06:00`,cl:1}}
     case "club":return {s:"Uppdrag och tips"};
     case "infok":return {s:"Kartor och vägbeskrivningar"};
     case "cafe":return cafeOpen()?{s:"Fika och frågesport · ger energi"}:{s:"Stängt · öppet 07–19",cl:1};
@@ -3442,8 +3449,8 @@ function cityComplete(c){const ps=cityMap(c).pois.filter(p=>DONE_T.includes(p.ty
 /* the whole city is done: say so once, and mark it on the world map */
 function checkCityDone(){if(!S||modalOpen()||busy)return;const c=here();S.cityDone=S.cityDone||[];if(S.cityDone.includes(c.id)||!cityComplete(c))return;
   const before=unlocked();S.cityDone.push(c.id);gainXP(100);save();AMB.shutter&&AMB.shutter();
-  if(contDone(c.t)){const i=TI[c.t],nx=TIERS[i+1];if(nx&&unlocked()>before)S.goCont=nx.k;
-    modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">🌍</div><h2 style="margin-top:8px">${esc(TIERS[i].name)} är klar!</h2><div class="sub">${nx?`Du har klarat alla tio städer i ${esc(TIERS[i].name)}. Gå till flygplatsen, där väntar flyget vidare till <b>${esc(nx.name)}</b>.`:"Du har rest jorden runt och klarat alla städer i alla världsdelar. Flyg hem till Stockholm och ta emot ordförandeklubban!"}</div><div class="result">+100 XP</div></div><button class="btn primary" type="button" id="ok">Till flygplatsen!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();const m=cityMap(c),i2=m.pois.findIndex(p=>p.type==="travel"&&p.mode==="plane");if(i2>=0){const d=m.nodes[m.pois[i2].node],f=foundList(c);if(!f.includes(i2))f.push(i2);W3.guide=i2;W3.guideAt=meXY().slice()}render();toast("Pilen visar vägen till flygplatsen.",2600)};return}
+  if(contDone(c.t)){const i=TI[c.t],nx=TIERS[i+1];if(nx&&unlocked()>before)S.goCont=nx.k;if(!nx&&!S.won){S.won=true;EV.push({type:"win"})}
+    modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">🌍</div><h2 style="margin-top:8px">${esc(TIERS[i].name)} är klar!</h2><div class="badge on big"><span class="ico">${BADGE[TIERS[i].k]}</span><b>${esc(TIERS[i].name)}</b><small>Ny badge i klubbhuset</small></div><div class="sub">Du är nu <b>${rankName().toLowerCase()}</b> i Världsresenärernas klubb. ${nx?`Gå till flygplatsen, där väntar flyget vidare till <b>${esc(nx.name)}</b>.`:"Du har rest jorden runt och klarat alla städer i alla världsdelar!"}</div></div><button class="btn primary" type="button" id="ok">Till flygplatsen!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();const m=cityMap(c),i2=m.pois.findIndex(p=>p.type==="travel"&&p.mode==="plane");if(i2>=0){const d=m.nodes[m.pois[i2].node],f=foundList(c);if(!f.includes(i2))f.push(i2);W3.guide=i2;W3.guideAt=meXY().slice()}render();toast("Pilen visar vägen till flygplatsen.",2600)};return}
   modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">✅</div><h2 style="margin-top:8px">${esc(c.n)} är klar!</h2><div class="sub">Du har gjort alla jobb, fikat, varit på puben, fotat sevärdheterna och läst all fakta i ${esc(c.n)}. Staden får en grön bock på världskartan.</div><div class="result">+100 XP</div></div><button class="btn primary" type="button" id="ok">Härligt!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();render()}}
 function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
@@ -3537,13 +3544,13 @@ function jobsHere(){const c=here(),R=rng(hash(c.id+dayOf()));const keys=Object.k
 function openJobs(){
   const c=here(),t=tierOf(c);
   if(!jobOpen()){modal(`<h2>Jobbtorget</h2><div class="sub">Stängt just nu. Klockan är ${clock()}. Kom tillbaka mellan 06:00 och 17:00.</div><button class="close" type="button">Stäng</button>`);return}
-  const rows=jobsHere().map(k=>{const cert=S.certs.includes(k),pay=r10(t.pay);
+  const rows=jobsHere().map(k=>{const cert=S.certs.includes(k),pay=jobPay(k,c);
     return `<button class="opt" data-k="${k}" type="button">${pIcon("brief")}<span><span class="t">${JOBS[k].n}${cert?" ★":""}</span><span class="r">${cert?"Du har certifikat":"Svara rätt på 5 av 5 för certifikat"}</span></span><span class="p">${fmt(pay)} kr<small>6 tim</small></span></button>`}).join("");
   const m=modal(`<h2>Jobbtorget</h2><div class="sub">Dagens lediga jobb i ${esc(c.n)}. Arbetsgivaren testar dig med fyra frågor, och lönen beror på hur många du klarar.</div><div class="opts">${rows}</div><button class="close" type="button">Avbryt</button>`);
   m.querySelectorAll(".opt").forEach(b=>b.onclick=()=>doJob(b.dataset.k));
 }
 function openJob(k){
-  const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=r10(t.pay),place=JOB_PLACE[k].n;
+  const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=jobPay(k,c),place=JOB_PLACE[k].n;
   if(!jobOpen()){modal(`<h2>${place}</h2><div class="sub">Stängt just nu. Klockan är ${clock()}. Här tar de in folk mellan 06:00 och 17:00.</div><button class="close" type="button">Stäng</button>`);return}
   const m=modal(`<h2>${place}</h2><div class="sub">De söker en ${JOBS[k].n.toLowerCase()} för ett pass på sex timmar. ${catDot(k)} Chefen testar dig med fem frågor om yrket, gärna med koppling till ${esc(c.n)}. Lönen beror på hur många du klarar. Jobbet räknas som klart efter passet, hur det än går.${cert?" Du har redan certifikat i yrket.":" Alla rätt ger ett yrkescertifikat."}</div>${jobTally(c)}
     <div class="result">${fmt(pay)} kr</div><button class="btn primary" type="button" id="take">Ta jobbet · 6 tim</button><button class="close" type="button">Inte nu</button>`);
@@ -3556,14 +3563,14 @@ function openInfo(){
   const mm=modal(`<h2>Infokiosken</h2><div class="sub">Välkommen till ${esc(c.n)}! Tryck på en plats så visar pilen vid kiosken åt vilket håll den ligger.</div>${jobTally(c)}<div class="opts">${commonJobBtn("infok")}${rows||`<div class="empty">Du har redan hittat allt i ${esc(c.n)}.</div>`}</div>${taxis.length?`<div class="sec-h" style="margin-top:14px"><span>Taxi</span><span>till platser du hittat</span></div><div class="opts">${taxis.map((x,k)=>`<button class="opt" data-tx="${k}" type="button" ${S.money<x.price?"disabled":""}>${pIcon("pin")}<span><span class="t">${esc(poiName(x.p,c))}</span><span class="r">${x.min} min med taxi</span></span><span class="p">${fmt(x.price)} kr</span></button>`).join("")}</div>`:""}<button class="close" type="button">Tack!</button>`);mm.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{W3.guide=+b.dataset.gi;W3.guideAt=meXY().slice();closeModal();toast(`Pilen vid kiosken visar åt vilket håll ${poiName(m.pois[W3.guide],c)} ligger.`,2600)});wireCommonJob(mm);mm.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>rideTaxi(taxis[+b.dataset.tx]));
 }
 function openClub(){
-  const n=rankIdx(),next=S.xy&&S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
+  const n=contCount(),nx=TIERS[n];
   const rows=S.missions.map(id=>{const mm=BY[id],t=tierOf(mm),tip=S.tips.includes(id);
     return `<div class="letter" style="margin-top:8px"><div class="lt"><span>${t.name}</span><span>${fmt(t.reward)} kr · ${MISSION_XP} XP</span></div><p>${esc(mm.clue)}</p>${tip?`<span class="tip">Tips: ${esc(mm.c)}</span>`:`<button class="linkbtn" data-tip="${id}" type="button" ${S.money<TIP_COST?"disabled":""}>Köp tips om landet (${TIP_COST} kr)</button>`}</div>`}).join("");
-  const m=modal(`<h2>Världsresenärernas klubb</h2><div class="sub">Du är <b>${rankName().toLowerCase()}</b> med ${S.xp} XP${next?`. ${next.xp-S.xp} XP kvar till ${next.rank.toLowerCase()}`:""}. Klubbsekreteraren räcker över dina aktuella uppdrag.</div>${rows||`<div class="empty" style="margin-top:10px">Inga uppdrag just nu.</div>`}<button class="close" type="button">Gå ut</button>`);
+  const m=modal(`<h2>Världsresenärernas klubb</h2><div class="sub">Du är <b>${rankName().toLowerCase()}</b>${nx?`. Klara alla städer i ${nx.name} för att bli ${RANKS[n+1].toLowerCase()}`:""}. På väggen hänger dina badges, och klubbsekreteraren räcker över dina aktuella uppdrag.</div>${badgesHtml()}${rows||`<div class="empty" style="margin-top:10px">Inga uppdrag just nu.</div>`}<button class="close" type="button">Gå ut</button>`);
   m.querySelectorAll("[data-tip]").forEach(b=>b.onclick=()=>{const id=b.dataset.tip;if(S.money<TIP_COST)return;S.money-=TIP_COST;S.tips.push(id);render();closeModal();setTimeout(openClub,140)});
 }
 function doJob(k){
-  const t=tierOf(here()),cert=S.certs.includes(k),full=r10(t.pay);
+  const t=tierOf(here()),cert=S.certs.includes(k),full=jobPay(k,here());
   runQuiz({title:JOBS[k].n,sub:`Jobbpass i ${here().n}`,qs:jobQs(k),done:(right,box)=>{
     const pay=r10(full*right/5);S.money+=pay;pass(6);spendEnergy(15);
     let extra=markJobDone(k);if(right===5&&!cert){S.certs.push(k);extra+=`<div class="fact"><b>Certifikat: ${JOBS[k].n}!</b> Alla rätt! Certifikatet sparas i väskan.</div>`}
@@ -4397,7 +4404,7 @@ const JOB_DESC={
  bungy:"En bungyjumpinstruktör väger hopparen, kontrollerar linor och selar och ser till att varje hopp blir säkert.",
  surf:"En surflärare lär nybörjare att läsa vågorna, paddla och resa sig på brädan.",
  pearl:"En pärlodlare odlar svarta Tahitipärlor i musslor i lagunerna och väntar i åratal på varje pärla."};
-function jobIntro(k){const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=r10(t.pay),j=JOBS[k];
+function jobIntro(k){const c=here(),t=tierOf(c),cert=S.certs.includes(k),pay=jobPay(k,c),j=JOBS[k];
   const m=modal(`<div class="eyebrow" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase">Om yrket</div><h2 style="margin-top:4px">${esc(j.n)}</h2>${catDot(k)}
     <div class="fact" style="font-size:15.5px">${esc(JOB_DESC[k]||"Ett yrke som behövs i "+c.n+". Visa vad du kan!")}</div>
     <div class="sub" style="margin-top:12px">Passet tar 6 timmar. Du får fem frågor om yrket. Lönen beror på hur många rätt du har, och med minst fyra rätt är jobbet klart.</div>
@@ -4742,13 +4749,12 @@ function flushEvents(){
 
 /* ================= Bag ================= */
 function renderBag(){
-  const n=rankIdx(),cur=S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
-  const prevXp=S.xp>=WIN_XP?WIN_XP:TIERS[n-1].xp,pct=cur?Math.round((S.xp-prevXp)/(cur.xp-prevXp)*100):100;
-  const ranks=[...TIERS.map(t=>t.rank),"Ordförande"],ri=ranks.indexOf(rankName());
+  const n=contCount(),nx=TIERS[n],doneHere=nx?CITIES.filter(c=>c.t===nx.k&&(S.cityDone||[]).includes(c.id)).length:10,pct=nx?doneHere*10:100;
+  const ranks=RANKS,ri=ranks.indexOf(rankName());
   const photos=S.photos.slice().reverse();
   $("bag").innerHTML=`
    <div class="rankcard"><div class="eyebrow">Världsresenärernas klubb · medlemskort</div><h2>${rankName()}</h2>
-     <div class="bar"><i style="width:${pct}%"></i></div><small>${S.xp} XP${cur?` · ${cur.xp-S.xp} XP kvar till ${cur.rank.toLowerCase()}`:" · högsta rangen"}</small>
+     <div class="bar"><i style="width:${pct}%"></i></div><small>${nx?`${doneHere} av 10 städer klara i ${nx.name} · nästa rang: ${RANKS[n+1].toLowerCase()}`:"Högsta rangen"} · ${S.xp} XP</small>${badgesHtml()}
      <div class="ladder">${ranks.map((r,i)=>`<span class="${i<=ri?"on":""}">${r}</span>`).join("")}</div></div>
    <div><div class="sec-h"><span>Uppdrag</span><span>${S.done.length} klara</span></div><div class="letters">${S.missions.map(id=>{const m=BY[id],t=tierOf(m),tip=S.tips.includes(id);
      return `<div class="letter"><div class="lt"><span>${t.name}</span><span>${fmt(t.reward)} kr</span></div><p>${esc(m.clue)}</p>${tip?`<span class="tip">Tips: ${esc(m.c)}</span>`:`<button class="linkbtn" data-tip="${id}" type="button" ${S.money<TIP_COST?"disabled":""}>Köp tips om landet (${TIP_COST} kr)</button>`}</div>`}).join("")}</div></div>
@@ -4914,16 +4920,16 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 74 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 75 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
   m.querySelector("#s-guide").onclick=()=>{closeModal();setTimeout(openGuide,120)}}
 function openGuide(){const sec=(t,items)=>`<div class="sec-h" style="margin-top:14px"><span>${t}</span></div><ul style="margin:6px 0 0;padding-left:20px;display:grid;gap:6px">${items.map(x=>`<li>${x}</li>`).join("")}</ul>`;
   modal(`<div class="intro"><h2>Guide</h2><div class="sub">Så funkar Resfeber.</div>
-  ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Samla erfarenhet (XP) och stig i graderna tills du blir <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Resan går jorden runt österut: Europa, Afrika, Asien, Oceanien, Sydamerika och Nordamerika. När alla tio städer i en världsdel är klara flyger du vidare till nästa från flygplatsen."])}
+  ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Varje världsdel du klarar ger en badge i klubbhuset och en ny rang. Klara alla sex så blir du <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Resan går jorden runt österut: Europa, Afrika, Asien, Oceanien, Sydamerika och Nordamerika. När alla tio städer i en världsdel är klara flyger du vidare till nästa från flygplatsen."])}
   ${sec("Gå runt i staden",["Tryck på kartan, håll fingret mot den eller dra i <b>spaken</b> för att gå.","Hus reser sig ur marken när du kommer nära. Gå in i cirkeln framför ett hus för att gå in.","En <b>grön bock</b> betyder att du är klar med stället."])}
-  ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön, och jobbet är klart efter ett pass, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust och vädret är bra. Varje stad har sitt eget klimat: regn, dimma, snö eller sandstorm gör det omöjligt att fota. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
+  ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön. Lönen beror på yrket och på prisnivån i staden, så Oslo betalar mer än Kairo. Jobbet är klart efter ett pass, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust och vädret är bra. Varje stad har sitt eget klimat: regn, dimma, snö eller sandstorm gör det omöjligt att fota. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
   ${sec("Energi och natt",["Energin sjunker när tiden går. Tar den slut går du långsamt, och svimmar du blir det dyrt.","Sov på hotell eller drick en energidryck från väskan.","På natten (20–06:30) kan en <b>ficktjuv på elsparkcykel</b> dyka upp. Han står still en kort stund och jagar dig sedan. Fly in på ett <b>öppet</b> ställe. Med snabba skor springer du ifrån honom."])}
   ${sec("Saker på gatan",["<b>Mynt</b> ligger på marken varje dag.","Varje stad har en <b>tidning</b> med ett tips och en vilsen <b>turist</b> som behöver hjälp."])}
   ${sec("Resa",["Gå till <b>flygplatsen</b>, <b>tågstationen</b> eller <b>hamnen</b>. Kartan visar världsdelen du är i. Tryck på en stad för att resa dit.","Tågen och båtarna går bara dit spåren och vattnet når."])}
