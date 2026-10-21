@@ -1033,16 +1033,18 @@ function mixQs(local,other,n){const out=[...local];for(const q of shuffle(other)
 /* ================= Rules ================= */
 const TIERS = [
  {k:"EU",name:"Europa",rank:"Novis",xp:0,reward:900,pay:800,lux:1400,hostel:330,map:150},
- {k:"NA",name:"Nordamerika",rank:"Resenär",xp:200,reward:1300,pay:950,lux:1500,hostel:300,map:250},
+ {k:"AF",name:"Afrika",rank:"Resenär",xp:200,reward:1300,pay:950,lux:1400,hostel:260,map:250},
  {k:"AS",name:"Asien",rank:"Upptäckare",xp:450,reward:1600,pay:1000,lux:1500,hostel:260,map:300},
- {k:"AF",name:"Afrika",rank:"Äventyrare",xp:750,reward:1800,pay:1050,lux:1400,hostel:220,map:350},
+ {k:"OC",name:"Oceanien",rank:"Äventyrare",xp:750,reward:1800,pay:1050,lux:1600,hostel:250,map:350},
  {k:"SA",name:"Sydamerika",rank:"Expeditionsledare",xp:1100,reward:2000,pay:1100,lux:1500,hostel:220,map:400},
- {k:"OC",name:"Oceanien",rank:"Världsresenär",xp:1500,reward:2300,pay:1200,lux:1700,hostel:260,map:500}
+ {k:"NA",name:"Nordamerika",rank:"Världsresenär",xp:1500,reward:2300,pay:1200,lux:1700,hostel:280,map:500}
 ];
-const TI = {EU:0,NA:1,AS:2,AF:3,SA:4,OC:5};
+const TI = {EU:0,AF:1,AS:2,OC:3,SA:4,NA:5};
 const WIN_XP = 2000, MISSION_XP = 100, CERT_XP = 25, TIP_COST = 150, DRINK = {price:30,energy:20}, MAXDRINK=5;
-const unlocked = () => TIERS.filter(t=>S.xp>=t.xp).length;
-const rankName = () => S.xp>=WIN_XP?"Ordförande":TIERS[unlocked()-1].rank;
+const contDone = k => CITIES.filter(c=>c.t===k).every(c=>(S.cityDone||[]).includes(c.id));
+const unlocked = () => {let n=1;while(n<TIERS.length&&contDone(TIERS[n-1].k))n++;const seen=Math.max(0,...(S.visited||[]).map(id=>BY[id]?TI[BY[id].t]+1:1));return Math.max(n,seen)};
+const rankIdx = () => TIERS.filter(t=>S.xp>=t.xp).length;
+const rankName = () => S.xp>=WIN_XP?"Ordförande":TIERS[rankIdx()-1].rank;
 const tierOf = c => TIERS[TI[c.t]];
 
 /* ================= Helpers ================= */
@@ -1103,7 +1105,7 @@ function fillMissions(){
   }
 }
 function gainXP(n){
-  const before=unlocked(), wasWon=S.xp>=WIN_XP;S.xp+=n;const after=unlocked();
+  const before=rankIdx(), wasWon=S.xp>=WIN_XP;S.xp+=n;const after=rankIdx();
   if(after>before){EV.push({type:"promo",tier:after-1});S.missions=S.missions.slice(0,2);fillMissions();}
   if(!wasWon&&S.xp>=WIN_XP){S.won=true;EV.push({type:"win"})}
 }
@@ -3263,7 +3265,7 @@ function drawStreet(now){
       g.beginPath();g.arc(bx+1.6*s,by+1.5*s+bb,1.1*s,0,7);g.fill();g.stroke();g.fillStyle="#1b2838";g.font=`800 ${7.5*s}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="middle";g.fillText("?",bx+5*s,by-2.6*s+bb);g.globalAlpha=1}});continue}
     objs.push({y:it.y,f:()=>{const [sx,sy]=proj(it.x,it.y,0),b=Math.sin(now/280+it.x)*3,w=8*s*it.s,h=w*150/128;
     g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(sx,sy,w*.35,w*.12,0,0,7);g.fill();g.drawImage(it.img,sx-w/2,sy-h-6*s*HF+b,w,h)}})}
-  objs.push({y:p[1],f:()=>{shadow(p[0],p[1]);drawWalker(g,W3.me,p[0],p[1],W3.dir,W3.moving,proj)}});
+  objs.push({y:p[1],f:()=>{const T=W3.taxi;if(T){drawCar(g,p[0],p[1],T.dir,proj);if(T.stage==="go")return}shadow(p[0],p[1]);if(!T||T.stage!=="go")drawWalker(g,W3.me,T?p[0]+10:p[0],p[1],W3.dir,W3.moving,proj)}});
   if(W3.thief){const T=W3.thief;objs.push({y:T.y,f:()=>{shadow(T.x,T.y);const ux=Math.sin(T.dir),uy=Math.cos(T.dir),P=(a,b,z)=>proj(T.x+ux*a,T.y+uy*a+b,z);
     g.strokeStyle="#1b2838";g.lineWidth=Math.max(2,1.2*s);g.lineCap="round";const [a1,a2]=P(-5,0,1.4),[b1,b2]=P(5,0,1.4),[c1,c2]=P(5.5,0,13),[h1,h2]=P(5.5,0,13);
     g.beginPath();g.moveTo(a1,a2);g.lineTo(b1,b2);g.lineTo(c1,c2);g.stroke();g.beginPath();g.moveTo(h1-3*s,h2);g.lineTo(h1+3*s,h2);g.stroke();
@@ -3360,8 +3362,8 @@ function npcStep(n,wd,px,py,dt,want){
 function w3Loop(now){
   if(!W3.running)return;requestAnimationFrame(w3Loop);
   const dt=Math.min(.1,(now-W3.last)/1000);W3.last=now;const c=here();if(W3.city!==c.id||!W3.W)return;
-  const wd=buildWorld(c),m=cityMap(c),p=meXY();
-  let vx=joyV[0],vy=joyV[1];
+  const wd=buildWorld(c),m=cityMap(c);if(taxiStep(dt)){W3.moving=false}const p=meXY();
+  let vx=W3.taxi?0:joyV[0],vy=W3.taxi?0:joyV[1];
   if(keys.size){vx=keys.has("right")-keys.has("left");vy=keys.has("down")-keys.has("up");const L=Math.hypot(vx,vy);if(L){vx/=L;vy/=L}}
   if(!(vx||vy)&&W3.hold&&now-W3.hold.t0>200&&!(busy||walking||modalOpen())){const r=$("street").getBoundingClientRect(),dx=W3.hold.x-r.left-W3.W/2,dy=(W3.hold.y-r.top-(W3.H*.62-14))/KY,L=Math.hypot(dx,dy);if(L>16){vx=dx/L;vy=dy/L;W3.target=null}}
   if(vx||vy){if(!W3.hold)W3.target=null}else if(W3.target&&!(busy||walking||modalOpen())){const dx=W3.target[0]-p[0],dy=W3.target[1]-p[1],L=Math.hypot(dx,dy);if(L<2.5)W3.target=null;else{vx=dx/L;vy=dy/L}}
@@ -3439,7 +3441,9 @@ const DONE_T=["job","cafe","pub","sight","info"];
 function cityComplete(c){const ps=cityMap(c).pois.filter(p=>DONE_T.includes(p.type));return ps.length>0&&ps.every(p=>poiDone(c,p))}
 /* the whole city is done: say so once, and mark it on the world map */
 function checkCityDone(){if(!S||modalOpen()||busy)return;const c=here();S.cityDone=S.cityDone||[];if(S.cityDone.includes(c.id)||!cityComplete(c))return;
-  S.cityDone.push(c.id);gainXP(100);save();AMB.shutter&&AMB.shutter();
+  const before=unlocked();S.cityDone.push(c.id);gainXP(100);save();AMB.shutter&&AMB.shutter();
+  if(contDone(c.t)){const i=TI[c.t],nx=TIERS[i+1];if(nx&&unlocked()>before)S.goCont=nx.k;
+    modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">🌍</div><h2 style="margin-top:8px">${esc(TIERS[i].name)} är klar!</h2><div class="sub">${nx?`Du har klarat alla tio städer i ${esc(TIERS[i].name)}. Gå till flygplatsen, där väntar flyget vidare till <b>${esc(nx.name)}</b>.`:"Du har rest jorden runt och klarat alla städer i alla världsdelar. Flyg hem till Stockholm och ta emot ordförandeklubban!"}</div><div class="result">+100 XP</div></div><button class="btn primary" type="button" id="ok">Till flygplatsen!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();const m=cityMap(c),i2=m.pois.findIndex(p=>p.type==="travel"&&p.mode==="plane");if(i2>=0){const d=m.nodes[m.pois[i2].node],f=foundList(c);if(!f.includes(i2))f.push(i2);W3.guide=i2;W3.guideAt=meXY().slice()}render();toast("Pilen visar vägen till flygplatsen.",2600)};return}
   modal(`<div style="text-align:center"><div style="font-size:54px;line-height:1">✅</div><h2 style="margin-top:8px">${esc(c.n)} är klar!</h2><div class="sub">Du har gjort alla jobb, fikat, varit på puben, fotat sevärdheterna och läst all fakta i ${esc(c.n)}. Staden får en grön bock på världskartan.</div><div class="result">+100 XP</div></div><button class="btn primary" type="button" id="ok">Härligt!</button>`,{center:true}).querySelector("#ok").onclick=()=>{closeModal();render()}}
 function markDoneB(c,k){S.doneB=S.doneB||{};const a=S.doneB[c.id]=S.doneB[c.id]||[];if(!a.includes(k))a.push(k);save()}
 function openPoi(p){
@@ -3467,7 +3471,7 @@ function openPoi(p){
 /* ================= UI shell ================= */
 let tab="city";
 function setTab(t){tab=t;if(t!=="city"&&typeof w3Stop==="function")w3Stop();for(const k of ["city","map","bag"]){$("tab-"+k).hidden=k!==t;$("t-"+k).setAttribute("aria-selected",k===t)}
-  if(t==="map"){const fit=(n)=>requestAnimationFrame(()=>{applyView();if(!mapInit){if(!svg.getBoundingClientRect().width&&n<20)return fit(n+1);fitContinent(here().t);mapInit=true}});fit(0);renderMapHint()}
+  if(t==="map"){const fit=(n)=>requestAnimationFrame(()=>{applyView();if(!mapInit){if(!svg.getBoundingClientRect().width&&n<20)return fit(n+1);fitContinent(S.goCont&&S.hub==="plane"?S.goCont:here().t);mapInit=true}});fit(0);renderMapHint()}
   if(t==="city")requestAnimationFrame(()=>{paintScene();w3Start();if(!$("walk").hidden)wApply()});
   if(t==="bag")renderBag();}
 let mapInit=false;
@@ -3552,7 +3556,7 @@ function openInfo(){
   const mm=modal(`<h2>Infokiosken</h2><div class="sub">Välkommen till ${esc(c.n)}! Tryck på en plats så visar pilen vid kiosken åt vilket håll den ligger.</div>${jobTally(c)}<div class="opts">${commonJobBtn("infok")}${rows||`<div class="empty">Du har redan hittat allt i ${esc(c.n)}.</div>`}</div>${taxis.length?`<div class="sec-h" style="margin-top:14px"><span>Taxi</span><span>till platser du hittat</span></div><div class="opts">${taxis.map((x,k)=>`<button class="opt" data-tx="${k}" type="button" ${S.money<x.price?"disabled":""}>${pIcon("pin")}<span><span class="t">${esc(poiName(x.p,c))}</span><span class="r">${x.min} min med taxi</span></span><span class="p">${fmt(x.price)} kr</span></button>`).join("")}</div>`:""}<button class="close" type="button">Tack!</button>`);mm.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{W3.guide=+b.dataset.gi;W3.guideAt=meXY().slice();closeModal();toast(`Pilen vid kiosken visar åt vilket håll ${poiName(m.pois[W3.guide],c)} ligger.`,2600)});wireCommonJob(mm);mm.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>rideTaxi(taxis[+b.dataset.tx]));
 }
 function openClub(){
-  const n=unlocked(),next=S.xy&&S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
+  const n=rankIdx(),next=S.xy&&S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
   const rows=S.missions.map(id=>{const mm=BY[id],t=tierOf(mm),tip=S.tips.includes(id);
     return `<div class="letter" style="margin-top:8px"><div class="lt"><span>${t.name}</span><span>${fmt(t.reward)} kr · ${MISSION_XP} XP</span></div><p>${esc(mm.clue)}</p>${tip?`<span class="tip">Tips: ${esc(mm.c)}</span>`:`<button class="linkbtn" data-tip="${id}" type="button" ${S.money<TIP_COST?"disabled":""}>Köp tips om landet (${TIP_COST} kr)</button>`}</div>`}).join("");
   const m=modal(`<h2>Världsresenärernas klubb</h2><div class="sub">Du är <b>${rankName().toLowerCase()}</b> med ${S.xp} XP${next?`. ${next.xp-S.xp} XP kvar till ${next.rank.toLowerCase()}`:""}. Klubbsekreteraren räcker över dina aktuella uppdrag.</div>${rows||`<div class="empty" style="margin-top:10px">Inga uppdrag just nu.</div>`}<button class="close" type="button">Gå ut</button>`);
@@ -3829,9 +3833,26 @@ function needFilm(){if((S.film||0)>0)return false;modal(`<h2>Molnet är fullt</h
 function taxiRows(c){const m=cityMap(c),me=meXY(),f=foundList(c);
   return m.pois.map((p,i)=>({p,i})).filter(o=>f.includes(o.i)&&o.p.type!=="infok").map(o=>{const d=dist2(me,m.nodes[o.p.node]);return {...o,d,price:r10(40+d*.9*(1+TI[c.t]*.1)),min:Math.max(5,Math.round(d*1.25/WALK_SPEED/3))}})
     .filter(x=>x.d>90).sort((a,b)=>a.d-b.d)}
-function rideTaxi(x){const c=here(),m=cityMap(c),d=m.nodes[x.p.node],wd=buildWorld(c);if(S.money<x.price)return;S.money-=x.price;pass(x.min/60);
-  const sp=[d[0],d[1]+30];const ok=wd.walkable(sp[0],sp[1])?sp:(findSpot(wd,d[0],d[1],24,60)||sp);S.xy[c.id]=[ok[0],ok[1]];W3.inside=-1;W3.target=null;closeModal();W3.cool=performance.now()+1200;
-  AMB&&AMB.horn&&AMB.horn();toast(`Taxin släppte av dig vid ${poiName(x.p,c)}.`);render()}
+function rideTaxi(x){const c=here(),m=cityMap(c),d=m.nodes[x.p.node],wd=buildWorld(c);if(S.money<x.price)return;S.money-=x.price;
+  const sp=[d[0],d[1]+30];const ok=wd.walkable(sp[0],sp[1])?sp:(findSpot(wd,d[0],d[1],24,60)||sp);
+  // a real cab pulls up, you get in, and it drives the streets to the place
+  const me=meXY();let a=null,ad=1e9;for(const k in m.nodes){const dd=dist2(m.nodes[k],me);if(dd<ad){ad=dd;a=k}}
+  const r=route(m,a,x.p.node),pts=[me.slice(),...(r?r.path.map(k=>m.nodes[k].slice()):[d.slice()]),ok];
+  W3.inside=-1;W3.target=null;W3.guide=null;closeModal();busy=true;keys.clear();joyV=[0,0];AMB&&AMB.horn&&AMB.horn();
+  W3.taxi={pts,k:0,f:0,stage:"in",t0:performance.now(),min:x.min,dest:x.p,dir:0};toast("Taxin stannar vid trottoarkanten. Hoppa in!",1600)}
+function taxiStep(dt){const T=W3.taxi;if(!T)return false;const c=here(),now=performance.now();
+  if(T.stage==="in"){if(now-T.t0>900)T.stage="go";return true}
+  if(T.stage==="go"){let v=95*dt;while(v>0&&T.k<T.pts.length-1){const A=T.pts[T.k],B=T.pts[T.k+1],L=dist2(A,B)||.01,left=L*(1-T.f);if(v<left){T.f+=v/L;v=0}else{v-=left;T.k++;T.f=0}}
+    const A=T.pts[Math.min(T.k,T.pts.length-1)],B=T.pts[Math.min(T.k+1,T.pts.length-1)];const pos=[A[0]+(B[0]-A[0])*T.f,A[1]+(B[1]-A[1])*T.f];if(dist2(A,B)>.5)T.dir=Math.atan2(B[0]-A[0],B[1]-A[1]);S.xy[c.id]=pos;
+    if(T.k>=T.pts.length-1){T.stage="out";T.t0=now}return true}
+  if(T.stage==="out"&&now-T.t0>700){W3.taxi=null;busy=false;pass(T.min/60);W3.cool=now+1200;toast(`Taxin släppte av dig vid ${poiName(T.dest,c)}.`);render();return false}
+  return true}
+function drawCar(g,x,y,dir,proj){const s=proj.s,ca=Math.cos(dir),sa=Math.sin(dir),P=(u,v,z)=>proj(x+u*ca+v*sa,y-u*sa+v*ca,z);
+  const box=(l,w,z0,z1,top,side)=>{const C=[[-w,-l],[w,-l],[w,l],[-w,l]];const faces=[];for(let i=0;i<4;i++){const a=C[i],b=C[(i+1)%4];faces.push({y:(P(a[0],a[1],0)[1]+P(b[0],b[1],0)[1])/2,a,b})}
+    faces.sort((p,q)=>p.y-q.y);for(const f of faces){g.beginPath();[[f.a,z0],[f.b,z0],[f.b,z1],[f.a,z1]].forEach(([q,z],i)=>{const [sx,sy]=P(q[0],q[1],z);i?g.lineTo(sx,sy):g.moveTo(sx,sy)});g.closePath();g.fillStyle=side;g.fill();g.stroke()}
+    g.beginPath();C.forEach((q,i)=>{const [sx,sy]=P(q[0],q[1],z1);i?g.lineTo(sx,sy):g.moveTo(sx,sy)});g.closePath();g.fillStyle=top;g.fill();g.stroke()};
+  g.save();g.lineWidth=1.2;g.strokeStyle="#1b2838";g.lineJoin="round";g.fillStyle="rgba(0,0,0,.18)";g.beginPath();const [cx,cy]=proj(x,y,0);g.ellipse(cx,cy,13*s,6*s,0,0,7);g.fill();
+  box(12,5.6,1.2,6.5,"#f6c431","#e0a91c");box(6,5,6.5,11,"#9fc3dd","#f6c431");box(1.6,2.2,11,12.6,"#fbf8f1","#1b2838");g.restore()}
 
 /* ================= The quiz host on the street: bet on a hard question ================= */
 let hostAcc=0;
@@ -4640,7 +4661,7 @@ function travelOptions(a,b){
 function openBooking(id){
   const c=BY[id],lock=TI[c.t]>=unlocked(),known=true,name=c.n;
   if(id===S.cur){modal(`<h2>${esc(c.n)}</h2><div class="sub">Här är du nu. Välj en annan stad på kartan för att resa.</div><button class="close" type="button">Stäng</button>`);return}
-  if(lock){const t=TIERS[TI[c.t]];modal(`<h2>${esc(name)}</h2><div class="sub">${esc(t.name)} öppnas när du blir ${t.rank.toLowerCase()} i Världsresenärernas klubb (${t.xp} XP). Du har ${S.xp} XP. Klara uppdrag och jobb för att stiga i graderna.</div><button class="close" type="button">Stäng</button>`);return}
+  if(lock){const t=TIERS[TI[c.t]],pv=TIERS[TI[c.t]-1];modal(`<h2>${esc(name)}</h2><div class="sub">${esc(t.name)} öppnas när du har klarat alla städer i ${esc(pv.name)}. Resan går jorden runt österut: Europa, Afrika, Asien, Oceanien, Sydamerika och sist Nordamerika.</div><button class="close" type="button">Stäng</button>`);return}
   if(!S.hub){modal(`<h2>${esc(name)}</h2><div class="sub">Gå till en flygplats, tågstation eller hamn i ${esc(here().n)} för att boka en resa.</div><button class="btn primary" type="button" id="back">Tillbaka till staden</button><button class="close" type="button">Stäng</button>`).querySelector("#back").onclick=()=>{closeModal();setTab("city")};return}
   const {d,o:all}=travelOptions(here(),c),o=all.filter(x=>x.mode===S.hub);
   const rows=o.map((x,i)=>{const afford=S.money>=x.price,ok=x.ok&&afford,arr=S.t+x.h;
@@ -4693,7 +4714,7 @@ function arrive(id,opt,dist){
   let delay=0,dnote="";
   if(Math.random()<.12){delay=opt.mode==="plane"?3:opt.mode==="train"?2:4;
     dnote=opt.mode==="plane"?"Flyget blev 3 timmar försenat. ":opt.mode==="train"?"Signalfel! Tåget blev 2 timmar försenat. ":"Hård sjögång, båten kom 4 timmar för sent. "}
-  const from=here();S.money-=opt.price;S.t+=opt.h+delay;S.cur=id;S.trips++;S.km+=Math.round(dist);
+  const from=here();S.money-=opt.price;S.t+=opt.h+delay;S.cur=id;S.trips++;S.km+=Math.round(dist);if(S.goCont&&BY[id].t===S.goCont)S.goCont=null;
   if(!S.visited.includes(id))S.visited.push(id);
   if(!S.xy)S.xy={};{const m=cityMap(BY[id]);let i=m.pois.findIndex(p=>p.type==="travel"&&p.mode===opt.mode);if(i<0)i=m.pois.findIndex(p=>p.node===m.start);
     const d=m.nodes[m.pois[i].node];S.xy[id]=[d[0],d[1]+12];const f=foundList(BY[id]);if(!f.includes(i))f.push(i);S.hub=opt.mode;S.hubName=m.pois[i].n}
@@ -4721,7 +4742,7 @@ function flushEvents(){
 
 /* ================= Bag ================= */
 function renderBag(){
-  const n=unlocked(),cur=S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
+  const n=rankIdx(),cur=S.xp>=WIN_XP?null:(n<TIERS.length?TIERS[n]:{rank:"Ordförande",xp:WIN_XP});
   const prevXp=S.xp>=WIN_XP?WIN_XP:TIERS[n-1].xp,pct=cur?Math.round((S.xp-prevXp)/(cur.xp-prevXp)*100):100;
   const ranks=[...TIERS.map(t=>t.rank),"Ordförande"],ri=ranks.indexOf(rankName());
   const photos=S.photos.slice().reverse();
@@ -4893,14 +4914,14 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
   const m=modal(`<h2>Inställningar</h2><div class="sub" style="margin-top:8px">Jag spelar med</div>${handPicker()}
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 73 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 74 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
   m.querySelector("#s-guide").onclick=()=>{closeModal();setTimeout(openGuide,120)}}
 function openGuide(){const sec=(t,items)=>`<div class="sec-h" style="margin-top:14px"><span>${t}</span></div><ul style="margin:6px 0 0;padding-left:20px;display:grid;gap:6px">${items.map(x=>`<li>${x}</li>`).join("")}</ul>`;
   modal(`<div class="intro"><h2>Guide</h2><div class="sub">Så funkar Resfeber.</div>
-  ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Samla erfarenhet (XP) och stig i graderna tills du blir <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Nya världsdelar låses upp en i taget när du får mer XP: Europa, Nordamerika, Asien, Afrika, Sydamerika och Oceanien."])}
+  ${sec("Målet",["Du är ny medlem i Världsresenärernas klubb. Samla erfarenhet (XP) och stig i graderna tills du blir <b>ordförande</b>.","Klubben skickar uppdrag om kända platser att fotografera, men säger aldrig vilken stad det gäller. Läs ledtrådarna!","Resan går jorden runt österut: Europa, Afrika, Asien, Oceanien, Sydamerika och Nordamerika. När alla tio städer i en världsdel är klara flyger du vidare till nästa från flygplatsen."])}
   ${sec("Gå runt i staden",["Tryck på kartan, håll fingret mot den eller dra i <b>spaken</b> för att gå.","Hus reser sig ur marken när du kommer nära. Gå in i cirkeln framför ett hus för att gå in.","En <b>grön bock</b> betyder att du är klar med stället."])}
   ${sec("Ställen i staden",["<b>Arbetsplatser</b> (fem per stad, öppna 06–17): svara på fem frågor om yrket. Fler rätt ger mer lön, och jobbet är klart efter ett pass, alla rätt ger ett certifikat.","<b>Lyxhotellet</b>: full energi på morgonen, frukost, stadskarta och en energidryck ingår.","<b>Bed & breakfast</b>: billigare, men bara 75 % energi och inget extra.","<b>Kaféet</b> (07–19): fika och frågesport som ger energi. <b>Puben</b> (17–02): pubquiz om pengar.","<b>Butiken</b>: stadskarta, mer molnlagring för bilder, snabbare skor och energidryck.","<b>Infokiosken</b>: välj en plats så visar en pil vid kiosken åt vilket håll den ligger. Där kan du också ta taxi.","<b>Sevärdheter</b>: fotografera dem när det är ljust och vädret är bra. Varje stad har sitt eget klimat: regn, dimma, snö eller sandstorm gör det omöjligt att fota. <b>Visste du?</b>-skyltar berättar fakta om staden."])}
   ${sec("Energi och natt",["Energin sjunker när tiden går. Tar den slut går du långsamt, och svimmar du blir det dyrt.","Sov på hotell eller drick en energidryck från väskan.","På natten (20–06:30) kan en <b>ficktjuv på elsparkcykel</b> dyka upp. Han står still en kort stund och jagar dig sedan. Fly in på ett <b>öppet</b> ställe. Med snabba skor springer du ifrån honom."])}
@@ -4932,7 +4953,7 @@ jobGen=function(c,gens,taken){return factFill(c,taken,jobTopic(CURJOB)[0])};
 function intro(saved){
   const m=modal(`<div class="intro"><h2>Välkommen till Världsresenärernas klubb</h2>
    <p style="margin:10px 0 0">Du är klubbens nyaste medlem. Målet är att bli <b>ordförande</b>. Klubben skickar uppdrag: fotografera kända platser runt om i världen, men den säger aldrig vilken stad det gäller.</p>
-   <ul><li>Du börjar i Europa. När du stiger i graderna låser du upp en världsdel i taget, från Nordamerika till Oceanien.</li>
+   <ul><li>Du börjar i Europa. När du stiger i graderna låser du upp en världsdel i taget, och reser jorden runt österut: Afrika, Asien, Oceanien, Sydamerika och sist Nordamerika.</li>
    <li>Varje stad har <b>fem arbetsplatser</b>. Där tjänar du pengar genom att svara på frågor om yrket.</li>
    <li>Sov på <b>hotell</b> för att få tillbaka energin. Var försiktig ute på natten.</li>
    <li>Du reser från riktiga stationer: flyg går från <b>flygplatsen</b>, tåg från <b>tågstationen</b> och båtar från <b>hamnen</b>. Väskan öppnar du med knappen i stadsbilden.</li>
