@@ -2861,7 +2861,11 @@ function stdAirport(B,o){const wall=o.wall||"#e8ecef";apron(B,-36,-30,30,-6);B.b
   B.box(-35,-1,10,23,15,11.4,o.rc||"#9aa3ad");B.box(-6,-6,4,-2,0,6,"#cfd6de");ctower(B,28,26,{col:(o.tw&&o.tw.col)||"#f4f1e8",top:(o.tw&&o.tw.top)||"#5a6f88"});jet(B,-18,-20,o.tail)}
 function stdStation(B,c,r){B.box(-26,4,0,26,18,13,c,{front:[...B.win(10,2,"#8fa7bf",.2,.85)],side:B.win(3,2,"#8fa7bf",.2,.85)});B.hip(-27,3,27,19,13,4,r,2.5);
   B.box(-8,2,0,8,20,18,c,{front:[[.12,0,.36,.5,"#5a3b2a"],[.64,0,.88,.5,"#5a3b2a"],[.3,.6,.7,.85,"#8fa7bf"]]});B.gable(-8.6,1.4,8.6,20.6,18,5,r,"y");B.disc(0,1.8,15.2,2.2,"#fbf8f1");
-  B.vault(-24,18,24,38,0,11,"#9fc3dd")}
+  B.vault(-24,18,24,38,0,11,"#9fc3dd");trainAt(B,32,-8,40,HPAL(c+r,["#c13a2a","#2648c9","#e9c46a","#2a7a4a","#e8ecef","#7a3b8a"]))}
+function trainAt(B,x,y0,len,col){col=col||HPAL(String(x)+len,["#c13a2a","#2648c9","#e9c46a","#2a7a4a","#e8ecef"]);B.box(x-5,y0-2,0,x+5,y0+len+2,1.2,"#bfb59f");
+  B.box(x+2.6,y0,0,x+3.2,y0+len,.3,"#5a5a5a");B.box(x+5.2,y0,0,x+5.8,y0+len,.3,"#5a5a5a");
+  const n=3,cl=len/n-1;for(let k=0;k<n;k++){const a=y0+k*(cl+1);B.box(x+1.6,a,.6,x+7.2,a+cl,6.4,col,{side:[[0,.15,1,.32,"#1b2838"],...Array.from({length:4},(_,i)=>[.06+i*.24,.45,.2+i*.24,.82,"#9fc3dd"])],front:[[.15,.45,.85,.8,"#9fc3dd"]]});B.box(x+1.4,a-.2,6.4,x+7.4,a+cl+.2,7,"#9aa3ad")}
+  for(let k=0;k<2;k++)B.prism(x-3,y0+len-14+k*8,.5,1.2,7,6,"#5a6470");B.box(x-4.6,y0+len-17,7,x+.6,y0+len-2,7.6,"#5a6470")}
 function stdPort(B,hull,r){B.box(-32,6,0,-4,20,9,"#f4f1e8",{front:[[.04,.2,.96,.85,"#9fc3dd"],...B.door(.14,.3,"#3d4650")],side:B.win(2,1,GL,.3,.8)});B.box(-32.5,5.5,9,-3.5,20.5,10,r);
   B.box(-36,-2,0,36,3,1,"#9aa3ad");for(let x=-30;x<=30;x+=10)B.prism(x,-1.6,.7,1,2.2,6,"#3d3a3a");cruise(B,14,-16,hull,40)}
 Object.assign(LMK,{
@@ -3014,13 +3018,18 @@ Object.assign(ART,{bakery:[30,26],patisserie:[30,26],pharmacy:[30,26],postoffice
   tennis:[60,26],court:[50,40],swissgate:[54,26],filmstudio:[50,32],powerclub:[56,46],barracks:[64,30],footy:[60,26],portcrane:[56,52],atelier:[38,26],lab:[46,34],shipoffice:[44,30],olivegrove:[60,24],track:[64,26],bazaar:[54,26],ceramics:[44,24],glassworks:[46,40],floodgate:[60,28],archboat:[60,30],designstudio:[40,30]});
 
 for(const [ss,ff] of Object.values(LM_MAP))for(const k of [...ss,...ff])if(!ART[k])ART[k]=[LM_W[k.split(":")[0]]||40,40];
-for(const c of CITIES)for(const k of ["apt:","stn:","prt:"])ART[k+c.id]=[LM_W[k.slice(0,3)],40];
+for(const c of CITIES)for(const k of ["apt:","stn:","prt:"])ART[k+c.id]=[{apt:70,stn:80,prt:86}[k.slice(0,3)],40];
 /* ================= Europe's stations modelled on the real buildings (other cities keep the parametric ones) ================= */
 function apron(B,x0,y0,x1,y1){for(let x=x0;x<x1;x+=8)for(let y=y0;y<y1;y+=8)B._poly([[x,y,.3],[Math.min(x1,x+8),y,.3],[Math.min(x1,x+8),Math.min(y1,y+8),.3],[x,Math.min(y1,y+8),.3]],[0,0,1],"#9aa3ad");for(let x=x0+4;x<x1-2;x+=8)B.box(x,(y0+y1)/2-.2,.3,x+4,(y0+y1)/2+.2,.4,"#f4f1e8")}
 function vapur(B,x,y,hull,funnel,band){B.box(x-14,y,0,x+12,y+8,3.2,hull||"#f4f1e8",{front:[[0,0,1,.3,"#1b2838"]]});B._poly([[x+12,y,0],[x+17,y+4,0],[x+17,y+4,3.2],[x+12,y,3.2]],[1,-1.25,0],hull||"#f4f1e8");B._poly([[x+12,y,3.2],[x+17,y+4,3.2],[x+12,y+8,3.2]],[0,0,1],"#c9a46e");
   B.box(x-12,y+1,3.2,x+8,y+7,6.6,"#f4f1e8",{front:B.win(8,1,"#9fc3dd",.3,.8)});B.box(x+3,y+2,6.6,x+8,y+6,9,"#f4f1e8",{front:[[.1,.3,.9,.85,"#9fc3dd"]]});B.prism(x-3,y+4,1.4,6.6,12,10,funnel||"#1b2838");if(band)B.prism(x-3,y+4,1.45,9.6,10.8,10,band)}
-function cruise(B,x,y,hull,len=40){B.box(x-len/2,y,0,x+len/2,y+12,6,hull||"#f4f1e8",{front:[[0,0,1,.25,"#1b2838"],...B.win(14,1,"#3d4650",.45,.7)]});
-  for(let i=0;i<4;i++)B.box(x-len/2+3+i*1.5,y+1+i*.4,6+i*3,x+len/2-6-i*2,y+11-i*.4,9+i*3,"#f4f1e8",{front:B.win(10-i*2,1,"#9fc3dd",.3,.8)});B.prism(x-len/2+10,y+6,2,18,23,10,"#c13a2a")}
+function cruise(B,x,y,hull,len=40){len=Math.max(len,52);const x0=x-len/2,x1=x+len/2-6,W="#f4f1e8",dark=hull&&hull!=="#f4f1e8"?hull:"#1d3f8a";
+  B.box(x0,y,0,x1,y+12,3.2,dark);B._poly([[x1,y,0],[x1+8,y+6,0],[x1+8,y+6,3.2],[x1,y,3.2]],[1,-1.33,0],dark);
+  B.box(x0,y,3.2,x1,y+12,8,W,{front:[...B.win(18,1,"#3d4650",.35,.6)]});B._poly([[x1,y,3.2],[x1+8,y+6,3.2],[x1+8,y+6,8.6],[x1,y,8]],[1,-1.33,0],W);B._poly([[x1,y,8],[x1+8,y+6,8.6],[x1,y+12,8]],[0,0,1],"#c9a46e");
+  for(let i=0;i<4;i++){const a=x0+1+(i>2?6:0),b=x1-2-i*2.5;B.box(a,y+1,8+i*3,b,y+11,11+i*3,W,{front:[[0,.05,1,.18,"#9aa3ad"],...B.win(Math.round((b-a)/2.2),1,i===0?"#3d4650":"#6f8fa8",.3,.8)]})}
+  for(let k=0;k<6;k++){const lx=x0+5+k*((len-18)/5);B.box(lx,y-.6,9,lx+3.4,y+.6,10.6,"#f26b1d")}
+  B.box(x1-9,y+2,20,x1-3,y+10,23,W,{front:[[.05,.2,.95,.8,"#9fc3dd"]]});
+  B.prism(x0+9,y+6,2.6,20,26,10,W);B.prism(x0+9,y+6,2.7,24,26,10,dark);B.prism(x0+9,y+6,2.2,26,26.6,10,"#1b2838")}
 const HUBX={
  /* ---- airports ---- */
  "apt:sto":(B)=>{apron(B,-36,-30,30,-6);B.box(-34,0,0,22,14,10,"#e8ecef",{front:[[.03,.15,.97,.85,"#9fc3dd"],...B.door(.1,.25,"#3d4650")],side:B.win(3,1,GL,.2,.85)});B.box(-35,-1,10,23,15,11.2,"#cfd6de");
@@ -3072,8 +3081,7 @@ const HUBX={
  "prt:ven":(B)=>{B.box(-34,6,0,-4,24,9,"#e8dcc4",{front:[...B.win(6,1,"#8fa7bf",.35,.8),...B.door(.14,.5,"#5a3b2a")]});B.box(-34.5,5.5,9,-3.5,24.5,10,"#c48f55");
    cruise(B,14,-18,"#f4f1e8",44);B.box(-30,-6,0,-14,0,1,"#a5794d");B.box(-28,-12,0,-16,-7,2,"#f4f1e8",{front:[[0,0,1,.4,"#2f6fbf"]]});B.box(-25,-11,2,-19,-8,4,"#f4f1e8")}
 };
-Object.assign(ART,{"apt:sto":[70,40],"apt:rey":[70,40],"apt:lon":[74,40],"apt:par":[74,40],"apt:rom":[70,40],"apt:bln":[70,40],"apt:bcn":[70,40],"apt:ath":[70,40],"apt:ist":[72,42],"apt:ven":[80,40],
-  "stn:sto":[70,40],"stn:par":[70,40],"stn:ath":[62,40],"prt:sto":[72,40],"prt:rey":[70,40],"prt:lon":[72,40],"prt:rom":[74,40],"prt:bcn":[78,40],"prt:ath":[66,40],"prt:ist":[72,40],"prt:ven":[78,40]});
+Object.assign(ART,{"stn:par":[70,40],"prt:rom":[86,40]});
 
 const MODELC={};function modelFor(kind,c){const k=kind+"|"+c.st;return MODELC[k]||(MODELC[k]=buildModel(kind,c))}
 /* ================= Printed tourist map look ================= */
@@ -5424,7 +5432,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 80 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 81 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
