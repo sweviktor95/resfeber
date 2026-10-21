@@ -2854,10 +2854,22 @@ const PT_M={
 const PT_K={sto:"cruise:#c13a2a",rey:"fishing",lon:"wharf",rom:"cruise:#2648c9",bcn:"cruise:#2648c9",ath:"cruise:#2648c9",ist:"terminal",ven:"cruise:#1b2838",nyc:"cruise:#1b2838",rio:"cruise:#e9c46a",cpt:"wharf",mum:"container:#e0402a",bkk:"container:#2648c9",
  dxb:"cruise:#c13a2a",tyo:"cruise:#2648c9",syd:"wharf",van:"cruise:#c13a2a",sfo:"ferrybuilding",bue:"terminal",sin:"cruise:#1b2838",hkg:"starferry",lax:"container:#2648c9",yyz:"terminal",hav:"terminal",znz:"dhow",mel:"cruise:#2648c9",akl:"wharf",chi:"wharf",
  msy:"river",lim:"container:#e9c46a",ctg:"terminal",mao:"river",ush:"cruise:#c13a2a",acc:"container:#e0402a",dkr:"fishing",cns:"wharf",per:"container:#2a7a4a",wlg:"terminal",hnl:"cruise:#c45ab0",ppt:"terminal"};
+/* every airport, station and harbour shares one recognisable shape, coloured after its city; only the world-famous ones get their own model */
+const HUB_ICON=new Set(["apt:par","apt:ist","stn:lon","stn:par","stn:rom","stn:bln","stn:nyc","stn:mum","prt:rom","prt:sfo","prt:hkg"]);
+const HPAL=(v,list)=>list[hash(v+"hub")%list.length];
+function stdAirport(B,o){const wall=o.wall||"#e8ecef";apron(B,-36,-30,30,-6);B.box(-34,0,0,22,14,10,wall,{front:[[.03,.15,.97,.82,"#9fc3dd"],...B.door(.1,.25,"#3d4650")],side:B.win(3,1,GL,.2,.85)});
+  B.box(-35,-1,10,23,15,11.4,o.rc||"#9aa3ad");B.box(-6,-6,4,-2,0,6,"#cfd6de");ctower(B,28,26,{col:(o.tw&&o.tw.col)||"#f4f1e8",top:(o.tw&&o.tw.top)||"#5a6f88"});jet(B,-18,-20,o.tail)}
+function stdStation(B,c,r){B.box(-26,4,0,26,18,13,c,{front:[...B.win(10,2,"#8fa7bf",.2,.85)],side:B.win(3,2,"#8fa7bf",.2,.85)});B.hip(-27,3,27,19,13,4,r,2.5);
+  B.box(-8,2,0,8,20,18,c,{front:[[.12,0,.36,.5,"#5a3b2a"],[.64,0,.88,.5,"#5a3b2a"],[.3,.6,.7,.85,"#8fa7bf"]]});B.gable(-8.6,1.4,8.6,20.6,18,5,r,"y");B.disc(0,1.8,15.2,2.2,"#fbf8f1");
+  B.vault(-24,18,24,38,0,11,"#9fc3dd")}
+function stdPort(B,hull,r){B.box(-32,6,0,-4,20,9,"#f4f1e8",{front:[[.04,.2,.96,.85,"#9fc3dd"],...B.door(.14,.3,"#3d4650")],side:B.win(2,1,GL,.3,.8)});B.box(-32.5,5.5,9,-3.5,20.5,10,r);
+  B.box(-36,-2,0,36,3,1,"#9aa3ad");for(let x=-30;x<=30;x+=10)B.prism(x,-1.6,.7,1,2.2,6,"#3d3a3a");cruise(B,14,-16,hull,40)}
 Object.assign(LMK,{
- apt:(B,v)=>HUBX["apt:"+v]?HUBX["apt:"+v](B):airportModel(B,AP_K[v]||{}),
- stn:(B,v)=>{if(HUBX["stn:"+v])return HUBX["stn:"+v](B);const [k,c]=(ST_K[v]||"small").split(":");(ST_M[k]||ST_M.small)(B,c)},
- prt:(B,v)=>{if(HUBX["prt:"+v])return HUBX["prt:"+v](B);const [k,c]=(PT_K[v]||"terminal").split(":");(PT_M[k]||PT_M.terminal)(B,c)}});
+ apt:(B,v)=>HUB_ICON.has("apt:"+v)&&HUBX["apt:"+v]?HUBX["apt:"+v](B):stdAirport(B,AP_K[v]||{tail:HPAL(v,["#c13a2a","#2648c9","#2a7a4a","#e9c46a"])}),
+ stn:(B,v)=>{const [k,c]=(ST_K[v]||"").split(":");if(HUB_ICON.has("stn:"+v)){if(HUBX["stn:"+v])return HUBX["stn:"+v](B);return (ST_M[k]||ST_M.small)(B,c)}
+   stdStation(B,c||HPAL(v,["#e2d5b8","#c9a27a","#b0503a","#e8dcc4","#d8d2c0","#e6cfa4","#e7c98d"]),HPAL(v+"r",["#5a6470","#4a5560","#5f8f7a","#a5432f","#7d868f"]))},
+ prt:(B,v)=>{const [k,c]=(PT_K[v]||"").split(":");if(HUB_ICON.has("prt:"+v)){if(HUBX["prt:"+v])return HUBX["prt:"+v](B);return (PT_M[k]||PT_M.terminal)(B,c)}
+   stdPort(B,c||HPAL(v,["#f4f1e8","#c13a2a","#2648c9","#1b2838","#2a7a4a"]),HPAL(v+"r",["#c13a2a","#2f6fbf","#2a7a4a","#5a6470","#e9c46a"]))}});
 Object.assign(LM_W,{apt:70,stn:66,prt:72,pantheon:44});
 /* sharper versions of the most famous landmarks */
 Object.assign(LMK,{
@@ -5412,7 +5424,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 79 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 80 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
