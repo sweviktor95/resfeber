@@ -2425,7 +2425,14 @@ const ICONP={pint:"M6 4h12l-1.5 16h-9z M6.5 9h11",plane:"M17.8 19.2L16 11l3.5-3.
 /* model space: x = öster, y = bakåt (norr), z = upp. Kameran står snett framför till höger och ovanför. */
 const SPR=7,PHI=30*Math.PI/180,PIT=36*Math.PI/180;
 const VR=[Math.cos(PHI),Math.sin(PHI),0],VU=[-Math.sin(PHI)*Math.sin(PIT),Math.cos(PHI)*Math.sin(PIT),Math.cos(PIT)],VV=[Math.sin(PHI)*Math.cos(PIT),-Math.cos(PHI)*Math.cos(PIT),Math.sin(PIT)];
-const LT=(()=>{const v=[-.4,-.65,.7],l=Math.hypot(...v);return v.map(x=>x/l)})();
+let LT=(()=>{const v=[-.4,-.65,.7],l=Math.hypot(...v);return v.map(x=>x/l)})();const LT0=LT;let LTKEY="d";
+/* the sun: rises in the east, crosses the south sky (north of the equator) or the north sky (south of it) and sets in the west */
+const SUN_DECL=12*Math.PI/180;
+function sunAt(c,h){const phi=c.lat*Math.PI/180,H=(h-12)*15*Math.PI/180,cd=Math.cos(SUN_DECL),sd=Math.sin(SUN_DECL);
+  const e=-cd*Math.sin(H),n=sd*Math.cos(phi)-cd*Math.sin(phi)*Math.cos(H),u=sd*Math.sin(phi)+cd*Math.cos(phi)*Math.cos(H);return {e,n,u}}
+/* light used when a model is drawn: the sun's direction in 8 steps around the compass (model x = east, y = north) */
+function lightFor(c,h){const s=sunAt(c,h);if(s.u<.05)return {key:"d",v:LT0};const az=Math.atan2(s.e,s.n),b=((Math.round(az/(Math.PI/4))%8)+8)%8,a=b*Math.PI/4,el=Math.max(.45,Math.min(.85,s.u));
+  const v=[Math.sin(a)*Math.sqrt(1-el*el),Math.cos(a)*Math.sqrt(1-el*el),el];return {key:"s"+b,v}}
 const vadd=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],vmul=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
 function buildModel(kind,c){
   const items=[],st=STY[c.st]||STY.euro,wall=st.cols[0];
@@ -3084,7 +3091,8 @@ const HUBX={
 };
 Object.assign(ART,{"stn:par":[70,40],"prt:rom":[86,40]});
 
-const MODELC={};function modelFor(kind,c){const k=kind+"|"+c.st;return MODELC[k]||(MODELC[k]=buildModel(kind,c))}
+const MODELC={};function modelFor(kind,c,lt){lt=lt||{key:LTKEY,v:LT};const base=kind+"|"+c.st,k=base+"|"+lt.key;if(MODELC[k])return MODELC[k];
+  for(const o in MODELC)if(o.startsWith(base+"|"))delete MODELC[o];const keep=LT;LT=lt.v;try{return MODELC[k]=buildModel(kind,c)}finally{LT=keep}}
 /* ================= Printed tourist map look ================= */
 const STREETS={
  sv:["Storgatan","Kungsgatan","Drottninggatan","Kyrkogatan","Hamngatan","Skolgatan","Torggatan","Järnvägsgatan","Nygatan","Västra vägen","Östra Långgatan","Badhusgatan"],
@@ -3386,7 +3394,7 @@ function w3Resize(){if(!W3.ok)return;const cv=$("street"),d=Math.min(2,window.de
 function w3Build(c){
   if(!w3Init())return;const m=cityMap(c),wd=buildWorld(c);
   W3.bg=m.bg==="water"?"#86b8d2":"#e9dfc6";
-  W3.pois=m.pois.map((p,i)=>({p,art:p._kind?modelFor(p._kind,c):null,label:null,lt:"",s:isFound(c,i)?1:0}));
+  {const L=lightFor(c,hourOf(c));LTKEY=L.key;LT=L.v}W3.pois=m.pois.map((p,i)=>({p,art:p._kind?modelFor(p._kind,c):null,lk:LTKEY,label:null,lt:"",s:isFound(c,i)?1:0}));
   W3.items=dayItems(c).map(it=>({...it,img:itemCanvas(it.t),s:0}));
   const R=rng(hash(c.id+"npc"));
   W3.npcs=Array.from({length:9},(_,i)=>({x:0,y:0,vx:0,vy:0,t:0,on:false,dir:0,phase:R()*6,
@@ -3466,11 +3474,15 @@ function drawStreet(now){
     g.font=l.k==="area"?"800 13px Unbounded, sans-serif":"italic 700 14px Figtree, sans-serif";g.lineWidth=3;g.strokeStyle="rgba(255,250,240,.85)";g.strokeText(l.t,sx,sy);g.fillStyle=l.k==="area"?"#1b2838":"#0b4f7c";g.fillText(l.t,sx,sy)}
   // depth-sorted things standing on the ground
   const objs=[],vis=(x,y,h)=>x>vx0-80&&x<vx1+80&&y>vy0-10&&y<vy1+h;
+  const SUN=sunAt(c,hourOf(c)),sunUp=SUN.u>.03,shLen=sunUp?Math.min(2.6,Math.max(.25,Math.sqrt(1-SUN.u*SUN.u)/SUN.u)):0,shH=Math.hypot(SUN.e,SUN.n)||1,shX=-SUN.e/shH,shY=SUN.n/shH,shA=(sunUp?Math.min(.18,.06+SUN.u*.25):.1)*(typeof badWeather==="function"&&(badWeather()||rainy())?.45:1);
+  /* a soft shadow from a footprint of radius r (world units) for something hgt tall: stretched away from the sun */
+  const castShadow=(x,y,r,hgt,a)=>{const L=hgt*shLen,[bx,by]=proj(x,y,0),[ex,ey]=proj(x+shX*L,y+shY*L,0),dx=ex-bx,dy=ey-by,len=Math.hypot(dx,dy);
+    g.fillStyle=`rgba(0,0,0,${(a||1)*shA})`;g.beginPath();g.ellipse((bx+ex)/2,(by+ey)/2,len/2+r*s*.9,r*s*KY*1.1+Math.min(len,r*s)*.15,len>.5?Math.atan2(dy,dx):0,0,7);g.fill()};
   for(const t of wd.trees)if(vis(t[0],t[1],30))objs.push({y:t[1],f:()=>{const [sx,sy]=proj(t[0],t[1],0),w=11*t[2]*s,h=17*t[2]*s*HF;
-    g.fillStyle="rgba(0,0,0,.18)";g.beginPath();g.ellipse(sx,sy,w*.45,w*.45*KY,0,0,7);g.fill();g.drawImage(TREE_IMG,sx-w/2,sy-h,w,h)}});
+    castShadow(t[0],t[1],5*t[2],10*t[2],.9);g.drawImage(TREE_IMG,sx-w/2,sy-h,w,h)}});
   for(const o of W3.pois){if(!o.art||o.s<.003)continue;const d0=m.nodes[o.p.node],by=d0[1]-o.p._back;if(!vis(d0[0],by,90))continue;
     objs.push({y:by,f:()=>{const k=o.s,pop=k<1?1-Math.pow(1-k,3)*(1+2.4*k)+(k>.7?Math.sin((k-.7)*10)*.04:0):1,[sx,sy]=proj(d0[0],by,0),A=o.art,k2=s/SPR*1.25,w=o.p._w*s,ph=Math.max(0,pop);
-      g.fillStyle="rgba(0,0,0,.16)";g.beginPath();g.ellipse(sx+w*.12,sy-w*.05,w*.62,w*.16,0,0,7);g.fill();
+      if(ph>.3)castShadow(d0[0],by-o.p._w*.12,o.p._w*.36,Math.min(36,A.ay/SPR*.8)*ph,.85);
       if(ph>.01)g.drawImage(A.cv,sx-A.ax*k2,sy-A.ay*k2*ph,A.cv.width*k2,A.cv.height*k2*ph)}})}
   for(const it of W3.items){if(it.done||it.s<.01)continue;
     if(it.t==="host"){if(isDark())continue;objs.push({y:it.y,f:()=>{g.globalAlpha=Math.min(1,it.s);shadow(it.x,it.y);
@@ -3490,7 +3502,7 @@ function drawStreet(now){
     g.beginPath();g.moveTo(a1,a2);g.lineTo(b1,b2);g.lineTo(c1,c2);g.stroke();g.beginPath();g.moveTo(h1-3*s,h2);g.lineTo(h1+3*s,h2);g.stroke();
     for(const [wx,wy] of [P(-5,0,1),P(5,0,1)]){g.fillStyle="#333";g.beginPath();g.arc(wx,wy,1.6*s,0,7);g.fill()}
     const pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz);if(performance.now()<(T.wait||0)){const [bx,by]=proj(T.x,T.y,40);g.font=`900 ${Math.max(16,7*s)}px Figtree, sans-serif`;g.textAlign="center";g.textBaseline="bottom";g.lineWidth=4;g.strokeStyle="#fff";g.fillStyle="#e2392b";g.strokeText("!",bx,by);g.fillText("!",bx,by)}}})}
-  function shadow(x,y){const [sx,sy]=proj(x,y,0);g.fillStyle="rgba(0,0,0,.22)";g.beginPath();g.ellipse(sx,sy,2.8*SC*s,2.8*SC*s*KY,0,0,7);g.fill()}
+  function shadow(x,y){castShadow(x,y,2.6*SC,5*SC,1.3)}
   objs.sort((a,b)=>a.y-b.y);for(const o of objs)o.f();
   // the thief always shows through buildings, so he can't sneak up unseen
   if(W3.thief){const T=W3.thief,pz=(x,y,z)=>proj(x,y,z+2.5);pz.s=proj.s;g.save();g.globalAlpha=.55;drawWalker(g,THIEF_W,T.x,T.y,T.dir,false,pz);g.restore()}
@@ -3580,6 +3592,8 @@ function npcStep(n,wd,px,py,dt,want){
 }
 function w3Loop(now){
   if(!W3.running)return;requestAnimationFrame(w3Loop);
+  if(W3.pois&&(!W3.ltT||now-W3.ltT>1000)){W3.ltT=now;const L=lightFor(here(),hourOf());if(L.key!==LTKEY){LTKEY=L.key;LT=L.v}}
+  if(W3.pois&&(!W3.ltF||now-W3.ltF>90)){W3.ltF=now;const o=W3.pois.find(o=>o.art&&o.lk!==LTKEY);if(o){try{o.art=modelFor(o.p._kind,here());o.lk=LTKEY}catch(e){o.lk=LTKEY}}}
   const dt=Math.min(.1,(now-W3.last)/1000);W3.last=now;const c=here();if(W3.city!==c.id||!W3.W)return;
   const wd=buildWorld(c),m=cityMap(c);if(taxiStep(dt)){W3.moving=false}const p=meXY();
   let vx=W3.taxi?0:joyV[0],vy=W3.taxi?0:joyV[1];
@@ -5434,7 +5448,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 82 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 83 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
