@@ -1097,7 +1097,7 @@ function pass(h){S.t+=h;spendEnergy(h*2.5*(S&&S.shoes?.75:1))}
 const durTxt = h => h<1?Math.round(h*60)+" min":(Math.round(h*2)/2).toString().replace(".",",")+" tim";
 
 /* ================= State ================= */
-const DEV=(()=>{try{return localStorage.getItem("resfeber-dev")==="1"}catch(e){return false}})();
+const DEV=false;try{localStorage.removeItem("resfeber-dev")}catch(e){}
 const KEY=DEV?"resfeber-devsave":"resfeber-v2";
 let S=null, EV=[];
 function newGame(){
@@ -2466,21 +2466,44 @@ function buildModel(kind,c){
     const WATERC=["#57b4e6","#3fb4d8","#3f9ac0","#8a7a4a","#7a9a6a","#e89aa8","#3d2a20","#c9a46e","#86b8d2"],box0=B.box;
     B.box=(x0,y0,z0,x1,y1,z1,col,o)=>{if(z0<=0&&z1<=1.2&&WATERC.includes(col)&&(x1-x0)>20)return;return box0(x0,y0,z0,x1,y1,z1,col,o)};
     if(LMK[base])LMK[base](B,vr);else (MODELS[kind]||MODELS.museum)(B,wall,c);B.box=box0}
-  // render
+  // render with a depth buffer (2× supersampled), so blocks that overlap or poke into each other always show the nearest surface
   const P=p=>[dot(p,VR)*SPR,-dot(p,VU)*SPR];let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
   const grow=p=>{const [x,y]=P(p);mnx=Math.min(mnx,x);mny=Math.min(mny,y);mxx=Math.max(mxx,x);mxy=Math.max(mxy,y)};
   for(const it of items){if(it.pts)it.pts.forEach(grow);if(it.sphere){const [x,y]=P(it.sphere.p),r=it.sphere.r*SPR;mnx=Math.min(mnx,x-r);mxx=Math.max(mxx,x+r);mny=Math.min(mny,y-r);mxy=Math.max(mxy,y+r)}if(it.line){grow(it.line.a);grow(it.line.b)}}
-  const pad=6,cv=document.createElement("canvas");cv.width=Math.ceil(mxx-mnx+pad*2);cv.height=Math.ceil(mxy-mny+pad*2);const g=cv.getContext("2d"),ox=pad-mnx,oy=pad-mny;
-  const S=p=>{const [x,y]=P(p);return [x+ox,y+oy]};g.lineJoin="round";g.lineCap="round";
-  items.sort((a,b)=>a.dep-b.dep);
+  const pad=6,cv=document.createElement("canvas");cv.width=Math.ceil(mxx-mnx+pad*2);cv.height=Math.ceil(mxy-mny+pad*2);const ox=pad-mnx,oy=pad-mny;
+  const S=p=>{const [x,y]=P(p);return [x+ox,y+oy]};
+  const SS=2,W=cv.width*SS,H=cv.height*SS,img=new ImageData(W,H),px=img.data,zb=new Float32Array(W*H).fill(-1e9);
+  const T=p=>{const [x,y]=S(p);return [x*SS,y*SS,D(p)]};
+  const put=(i,c,a)=>{const o=i*4;if(a>=1){px[o]=c[0];px[o+1]=c[1];px[o+2]=c[2];px[o+3]=255}else{const b=1-a;px[o]=px[o]*b+c[0]*a;px[o+1]=px[o+1]*b+c[1]*a;px[o+2]=px[o+2]*b+c[2]*a;px[o+3]=Math.min(255,px[o+3]+255*a)}};
+  const tri=(A,B2,C,col,bias,write)=>{const x0=Math.max(0,Math.floor(Math.min(A[0],B2[0],C[0]))),x1=Math.min(W-1,Math.ceil(Math.max(A[0],B2[0],C[0]))),y0=Math.max(0,Math.floor(Math.min(A[1],B2[1],C[1]))),y1=Math.min(H-1,Math.ceil(Math.max(A[1],B2[1],C[1])));
+    const den=(B2[1]-C[1])*(A[0]-C[0])+(C[0]-B2[0])*(A[1]-C[1]);if(Math.abs(den)<1e-9)return;
+    const a1=(B2[1]-C[1])/den,b1=(C[0]-B2[0])/den,a2=(C[1]-A[1])/den,b2=(A[0]-C[0])/den,za=A[2]-C[2],zbb=B2[2]-C[2],r0=col[0],g0=col[1],b0=col[2];
+    for(let y=y0;y<=y1;y++){const py=y+.5-C[1];let l1=a1*(x0+.5-C[0])+b1*py,l2=a2*(x0+.5-C[0])+b2*py,i=y*W+x0;
+      for(let x=x0;x<=x1;x++,i++,l1+=a1,l2+=a2){if(l1<-1e-6||l2<-1e-6||l1+l2>1+1e-6)continue;const z=C[2]+l1*za+l2*zbb+bias;
+        if(z>=zb[i]-1e-4){if(write)zb[i]=z;const o=i*4;px[o]=r0;px[o+1]=g0;px[o+2]=b0;px[o+3]=255}}}};
+  const fillPoly=(Q,col,bias,write=true)=>{for(let k=1;k<Q.length-1;k++)tri(Q[0],Q[k],Q[k+1],col,bias,write)};
+  const DISC={},disc=r=>{const k=Math.round(r*4);if(DISC[k])return DISC[k];const o=[],R=Math.ceil(r);for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++)if(x*x+y*y<=r*r+.25)o.push(x,y);return DISC[k]=o};
+  const seg=(A,B2,w,col,a,mode)=>{const L=Math.hypot(B2[0]-A[0],B2[1]-A[1]),n=Math.max(1,Math.ceil(L)),off=disc(w/2);
+    for(let s=0;s<=n;s++){const t=s/n,cx=Math.floor(A[0]+(B2[0]-A[0])*t),cy=Math.floor(A[1]+(B2[1]-A[1])*t),z=A[2]+(B2[2]-A[2])*t;
+      for(let k=0;k<off.length;k+=2){const xx=cx+off[k],yy=cy+off[k+1];if(xx<0||yy<0||xx>=W||yy>=H)continue;const i=yy*W+xx;
+        if(mode==="solid"){if(z>=zb[i]-1e-4){zb[i]=z;put(i,col,1)}}else if(MK[i]!==mode&&z>=zb[i]-.35){MK[i]=mode;put(i,col,a)}}}};
+  const RGB=new Map(),rgb=c=>{let v=RGB.get(c);if(v)return v;let s=c;if(!/^#|^rgb/.test(s)){const t=document.createElement("canvas").getContext("2d");t.fillStyle=c;s=t.fillStyle}
+    if(s[0]==="#"){if(s.length===4)s="#"+s[1]+s[1]+s[2]+s[2]+s[3]+s[3];v=[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)]}else v=s.match(/[\d.]+/g).slice(0,3).map(Number);RGB.set(c,v);return v};
+  const EDGE=[27,40,56],drawn=[],MK=new Int32Array(W*H);
   for(const it of items){
-    if(it.pts){g.beginPath();it.pts.forEach((p,i)=>{const [x,y]=S(p);i?g.lineTo(x,y):g.moveTo(x,y)});g.closePath();g.fillStyle=it.fill;g.fill();if(it.edge){g.strokeStyle="rgba(27,40,56,.55)";g.lineWidth=1.3;g.stroke()}
-      if(it.decor){const {O,U,V,list}=it.decor,k=it.n?lum(it.n):1;for(const [u0,v0,u1,v1,col] of list){const q=[[u0,v0],[u1,v0],[u1,v1],[u0,v1]].map(([u,v])=>S(vadd(vadd(O,vmul(U,u)),vmul(V,v))));
-        g.beginPath();q.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fillStyle=shadeC(col,Math.min(1.1,k+.08));g.fill();g.strokeStyle="rgba(27,40,56,.35)";g.lineWidth=.8;g.stroke()}}}
-    else if(it.sphere){const [x,y]=S(it.sphere.p),r=it.sphere.r*SPR,gr=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);gr.addColorStop(0,shadeC(it.sphere.col,1.15));gr.addColorStop(1,shadeC(it.sphere.col,.62));
-      g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.strokeStyle="rgba(27,40,56,.55)";g.lineWidth=1.2;g.stroke()}
-    else if(it.line){const [ax,ay]=S(it.line.a),[bx,by]=S(it.line.b);g.strokeStyle=it.line.col;g.lineWidth=Math.max(1,it.line.w*SPR);g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke()}
+    if(it.pts){const Q=it.pts.map(T);fillPoly(Q,rgb(it.fill),0);drawn.push({Q,edge:it.edge,w:1.3*SS,a:.55});
+      if(it.decor){const {O,U,V,list}=it.decor,k=it.n?lum(it.n):1;for(const [u0,v0,u1,v1,col] of list){const R=[[u0,v0],[u1,v0],[u1,v1],[u0,v1]].map(([u,v])=>T(vadd(vadd(O,vmul(U,u)),vmul(V,v))));
+        fillPoly(R,rgb(shadeC(col,Math.min(1.1,k+.08))),.02,false);drawn.push({Q:R.map(q=>[q[0],q[1],q[2]+.02]),edge:true,w:.8*SS,a:.35})}}}
+    else if(it.sphere){const [cx0,cy0]=S(it.sphere.p),cx=cx0*SS,cy=cy0*SS,r=it.sphere.r*SPR*SS,zc=D(it.sphere.p),lo=rgb(shadeC(it.sphere.col,.62)),hi=rgb(shadeC(it.sphere.col,1.15)),hx=cx-r*.35,hy=cy-r*.4;
+      for(let y=Math.max(0,Math.floor(cy-r));y<=Math.min(H-1,Math.ceil(cy+r));y++)for(let x=Math.max(0,Math.floor(cx-r));x<=Math.min(W-1,Math.ceil(cx+r));x++){const dx=x+.5-cx,dy=y+.5-cy,d2=dx*dx+dy*dy;if(d2>r*r)continue;
+        const z=zc+Math.sqrt(r*r-d2)/(SPR*SS),i=y*W+x;if(z<zb[i]-1e-4)continue;zb[i]=z;const t=Math.min(1,Math.hypot(x+.5-hx,y+.5-hy)/(r*1.25));put(i,[hi[0]+(lo[0]-hi[0])*t,hi[1]+(lo[1]-hi[1])*t,hi[2]+(lo[2]-hi[2])*t],1);
+        if(d2>(r-1.3*SS)*(r-1.3*SS))put(i,EDGE,.55)}}
+    else if(it.line){seg(T(it.line.a),T(it.line.b),Math.max(1,it.line.w*SPR)*SS,rgb(it.line.col),1,"solid")}
   }
+  /* outlines last, only where their face is the visible surface */
+  let pid=0;for(const d of drawn){if(!d.edge)continue;pid++;for(let k=0;k<d.Q.length;k++)seg(d.Q[k],d.Q[(k+1)%d.Q.length],d.w,EDGE,d.a,pid)}
+  const big=document.createElement("canvas");big.width=W;big.height=H;big.getContext("2d").putImageData(img,0,0);
+  const g=cv.getContext("2d");g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";g.drawImage(big,0,0,cv.width,cv.height);
   const [ax,ay]=S([0,0,0]);return {cv,ax,ay};
 }
 const GL="#9fc3dd";
@@ -5389,8 +5412,8 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <div class="setlist"><div class="row"><span>Utvecklarläge<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">Flyg runt, se allt, testa alla frågor. Eget sparat spel.</small></span><button class="btn" type="button" id="s-dev" style="margin:0;width:auto;padding:8px 14px">${DEV?"På":"Av"}</button></div></div><button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 78 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
-  wireHand(m);m.querySelector("#s-dev").onclick=()=>{try{localStorage.setItem("resfeber-dev",DEV?"0":"1")}catch(e){}save();location.reload()};m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 79 · 21 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+  wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
   m.querySelector("#s-guide").onclick=()=>{closeModal();setTimeout(openGuide,120)}}
