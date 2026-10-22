@@ -2792,7 +2792,24 @@ function statueOn(B,x,y,z,kind,c){if(kind==="buddha"){B.prism(x,y,7,z,z+7,10,c);
 function MODELS_SHIP(B,x,y){B.box(x-7,y,0,x+7,y+5,3,"#f4f1e8");B.box(x-4,y+1,3,x+3,y+4,6,"#e8dcc4");B.line([x,y+2.5,6],[x,y+2.5,12],.4,"#3d3a3a")}
 const LM_W={notredame:46,eiffel:44,triomphe:44,lattice:34,clocktower:36,bascule:60,suspension:64,archbridge:68,stonebridge:44,arch:32,colgate:36,arena:50,ruins:50,parthenon:56,hall:52,capitol:64,whitehouse:58,domechurch:44,twintower:32,spires:46,organ:32,mosque:44,pyramids:56,sphinx:44,stepped:50,statue:22,skyscraper:34,needle:16,observatory:50,prang:38,goldtemple:52,palace_asia:60,toriis:34,bamboo:46,buddhahill:60,stupa:34,mountain:66,beach:68,garden:60,forest:60,water:72,reef:68,waterfall:68,lighthouse:30,pier:72,waterfront:72,paddle:72,ferryboat:72,rowhouses:62,market:64,square:68,crossing:68,plaza:68,bean:60,opera:72,gondola:68,fortress:66,incawall:68,machupicchu:56,castle:48,stadium:68,bigstation:64,theatre:54,ship_museum:62,oldhouse:40,hutong:64,ruinedhut:52,lighthouse_rock:68,sign:72,bridgecity:72,default:18};
 Object.assign(LMK,{
-  louvre:(B)=>{B.box(-34,22,0,34,30,14,"#e6d8b8",{front:B.win(14,2,"#8fa7bf",.2,.85)});B.box(-34,-4,0,34,22,.6,"#d8cbb0");const c=[[-10,0,0],[10,0,0],[10,18,0],[-10,18,0]],t=[0,9,16];for(let i=0;i<4;i++){const a=c[i],b=c[(i+1)%4];B._poly([a,b,t],[(a[0]+b[0])/2,(a[1]+b[1])/2-9,8],"#9fc8e0")}},
+  louvre:(B)=>{const st="#e6d8b8",rf="#5a6470";
+    /* the palace wings around the courtyard, with mansard roofs and pavilions */
+    B.box(-38,24,0,38,32,14,st,{front:B.win(16,2,"#8fa7bf",.2,.85)});B.hip(-38.6,23.4,38.6,32.6,14,5,rf,2.4);
+    for(const s of [-1,1]){const x0=s<0?-38:30,x1=s<0?-30:38;B.box(x0,2,0,x1,24,14,st,{front:B.win(3,2,"#8fa7bf",.2,.85),side:B.win(8,2,"#8fa7bf",.2,.85)});B.hip(x0-.6,1.4,x1+.6,24.6,14,5,rf,2.4);
+      B.box(x0-1,-1,0,x1+1,7,17,st,{front:B.win(3,2,"#8fa7bf",.2,.85)});B.hip(x0-1.6,-1.6,x1+1.6,7.6,17,6,rf,1.4)}
+    B.box(-6,22,14,6,24.2,18,st,{front:[[.2,.2,.8,.85,"#8fa7bf"]]});B.hip(-6.6,21.4,6.6,32.6,18,7,rf,1.6);
+    B.box(-30,-6,0,30,24,.6,"#d8cbb0");
+    /* the glass pyramid: glass panes in a lattice of steel */
+    const c=[[-10,0,.6],[10,0,.6],[10,18,.6],[-10,18,.6]],t=[0,9,16.6],L=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+    for(let i=0;i<4;i++){const a=c[i],b=c[(i+1)%4],n=[(a[0]+b[0])/2,(a[1]+b[1])/2-9,8];B._poly([a,b,t],n,"#a9d3ea");
+      const nl=Math.hypot(...n),o=[n[0]/nl*.08,n[1]/nl*.08,n[2]/nl*.08],sh=p=>[p[0]+o[0],p[1]+o[1],p[2]+o[2]];
+      for(let k=1;k<6;k++){B.line(sh(L(a,t,k/6)),sh(L(b,t,k/6)),.1,"#4f6478");B.line(sh(L(a,b,k/6)),sh(L(L(a,b,k/6),t,1)),.08,"#4f6478")}
+      for(let k=1;k<6;k++){B.line(sh(L(a,b,k/6)),sh(L(b,t,k/6)),.06,"#6f8698");B.line(sh(L(b,a,k/6)),sh(L(a,t,k/6)),.06,"#6f8698")}
+      B.line(sh(a),sh(t),.22,"#3d4f60")}
+    for(let i=0;i<4;i++)B.line(c[i],c[(i+1)%4],.25,"#3d4f60");
+    /* the three small pyramids and the triangular pools */
+    for(const [x,y] of [[-17,6],[17,6],[0,-3.5]]){const s=2.4,q=[[x-s,y-s,.6],[x+s,y-s,.6],[x+s,y+s,.6],[x-s,y+s,.6]],tp=[x,y,4.6];for(let i=0;i<4;i++){const a=q[i],b=q[(i+1)%4];B._poly([a,b,tp],[(a[0]+b[0])/2-x,(a[1]+b[1])/2-y,2],"#a9d3ea")}}
+    for(const s of [-1,1])B._poly([[s*14,-5,.7],[s*26,-5,.7],[s*26,4,.7]],[0,0,1],"#6fb7dc")},
   fountain:(B)=>{B.box(-30,18,0,30,26,22,"#efe2c4",{front:B.win(10,3,"#8fa7bf",.15,.9)});temple2(B,"#efe2c4",8,3,22,0,15);B.box(-26,2,0,26,16,2.4,"#bfb59f");B.box(-24,4,0,24,14,2.5,"#57b4e6");B.prism(0,15,3,2,10,8,"#f4efe2");B.sphere([0,14,12],2.4,"#f4efe2");for(const x of [-8,8])B.line([x,10,6],[x*.6,6,2.5],.6,"#cfe8f6")},
   steps:(B,v)=>{const cols=(v||"#e9c46a,#e0402a,#2a9d8f,#2648c9").split(",");for(let i=0;i<9;i++)B.box(-14,i*2.4,0,14,i*2.4+2.4,i*2+2,cols[i%cols.length]);twinOn(B,0,24,18)},
   wallart:(B)=>{const cs=["#e0402a","#2648c9","#e9c46a","#2a9d8f","#c45ab0","#f39a2b"];B.box(-34,8,0,34,10,12,"#e8e4da");for(let i=0;i<8;i++)B.box(-33+i*8.4,7.9,1,-27+i*8.4,8,11,cs[i%6]);B.box(-34,0,0,34,6,.4,"#bfb59f")},
@@ -2819,7 +2836,7 @@ Object.assign(LMK,{
   fountainshow:(B)=>{B.box(-36,-6,0,36,22,.6,"#57b4e6");for(let i=0;i<9;i++){const x=-28+i*7,h=8+Math.abs(4-i)*3;B.line([x,8,.6],[x,8,h],1,"#e6f2fb");B.sphere([x,8,h],1.6,"#f2f8fc")}B.box(-30,22,0,30,30,24,"#9aa3ad",{front:B.win(10,6,"#cfe2f3",.05,.95)})}
 });
 function twinOn(B,x,y,z){B.box(x-10,y,z,x+10,y+8,z+10,"#f4efe2");for(const dx of [-8,6])B.box(x+dx,y,z+10,x+dx+3,y+3,z+18,"#f4efe2");B.cone(x-6.5,y+1.5,1.6,z+18,4,8,"#5a6f88");B.cone(x+7.5,y+1.5,1.6,z+18,4,8,"#5a6f88")}
-Object.assign(LM_W,{louvre:68,fountain:60,steps:30,wallart:68,booth:30,modernmuseum:52,stonetower:30,canal:72,loco:68,laundry:68,floatmarket:72,palm:72,greatwall:72,tiantan:34,chinagate:36,lombard:68,cablecar:68,taj:62,minaret:52,tram:68,beehive:48,memorial:72,fountainshow:72});
+Object.assign(LM_W,{louvre:78,fountain:60,steps:30,wallart:68,booth:30,modernmuseum:52,stonetower:30,canal:72,loco:68,laundry:68,floatmarket:72,palm:72,greatwall:72,tiantan:34,chinagate:36,lombard:68,cablecar:68,taj:62,minaret:52,tram:68,beehive:48,memorial:72,fountainshow:72});
 /* mountain extras */
 {const _m=LMK.mountain;LMK.mountain=(B,v)=>{if(v==="christ"){hill(B,0,15,30,22,"#5e8c4a");B.box(-3,13,22,3,17,25,"#cfc3a6");B.prism(0,15,1.6,25,38,8,"#f4f1e8");B.box(-9,14,34,9,16,36,"#f4f1e8");B.sphere([0,15,40],1.6,"#f4f1e8");return}_m(B,v)}}
 {const _w=LMK.water;LMK.water=(B,v)=>{if(v==="pink"){B.box(-36,-6,0,36,26,.6,"#e89aa8");B.box(-36,24,0,36,30,4,"#ecd79c");for(let i=0;i<5;i++)B.cone(-28+i*14,26,3,4,4,8,"#fbf8f1");return}_w(B,v)}}
@@ -3115,9 +3132,18 @@ const HUBX={
  "stn:sto":(B)=>{const c="#e7c98d";B.box(-32,4,0,32,18,14,c,{front:[...B.win(12,2,"#8fa7bf",.18,.85),...B.door(.12,.42,"#5a3b2a")],side:B.win(3,2,"#8fa7bf",.18,.85)});B.hip(-33,3,33,19,14,4,"#5f8f7a",2.5);
    B.box(-8,2,0,8,20,20,c,{front:[...B.win(3,1,"#8fa7bf",.6,.88),[.3,0,.7,.55,"#5a3b2a"]]});B.hip(-9,1,9,21,20,6,"#5f8f7a",2);B.disc(0,1.8,16,2.2,"#fbf8f1");
    for(const x of [-30,30]){B.box(x-4,2,0,x+4,20,17,c,{front:B.win(2,2,"#8fa7bf",.2,.85)});B.hip(x-4.6,1.4,x+4.6,20.6,17,5,"#5f8f7a")}B.vault(-28,20,28,40,0,10,"#9fc3dd")},
- "stn:par":(B)=>{const c="#e6dcc4";B.box(-34,4,0,34,18,22,c,{front:[...[.06,.17,.28,.39,.61,.72,.83,.94].map(u=>[u-.035,.08,u+.035,.7,"#8fa7bf"]),[.44,.08,.56,.85,"#8fa7bf"]]});
-   for(let i=0;i<10;i++)B.prism(-31+i*6.9,2.6,1,0,22,8,"#f4efe2");B.box(-35,2,22,35,19,24,"#ece4d0");for(let i=0;i<9;i++){const x=-28+i*7;B.prism(x,3,.9,24,27,6,"#d8cfb8");B.sphere([x,3,28],.9,"#d8cfb8")}
-   B.box(-6,2,24,6,19,29,"#ece4d0");B.gable(-6.5,1.5,6.5,19.5,29,3,"#ece4d0","y");B.vault(-30,18,30,40,0,12,"#9fc3dd")},
+ "stn:par":(B)=>{const c="#e6dcc4",lt="#f1ead6",gl="#8fa7bf",fig2=(x,y,z)=>{B.prism(x,y,.55,z,z+2.2,6,"#d8cfb8");B.sphere([x,y,z+2.7],.55,"#d8cfb8")};
+   /* side wings with tall arched windows, pilasters and a balustrade crowned by statues */
+   for(const s of [-1,1]){const x0=s<0?-34:12,x1=s<0?-12:34;B.box(x0,4,0,x1,18,20,c,{front:[[.08,.08,.28,.62,gl],[.4,.08,.6,.62,gl],[.72,.08,.92,.62,gl]],side:B.win(3,2,gl,.15,.85)});
+     for(const u of [.18,.5,.82])B.disc(x0+(x1-x0)*u,3.95,12.4,2.2,gl,16);for(let k=0;k<=4;k++)B.prism(x0+.8+k*(x1-x0-1.6)/4,3.2,.7,0,20,8,lt);
+     B.box(x0-.4,3,20,x1+.4,18.6,21.4,lt);B.box(x0,3.4,21.4,x1,18.2,22.6,c,{front:Array.from({length:10},(_,i)=>[i/10+.02,.15,i/10+.07,.85,lt])});for(let k=0;k<4;k++)fig2(x0+2.5+k*(x1-x0-5)/3,4,22.6)}
+   /* central pavilion: the great arched window between giant columns, entablature and the statue-crowned attic */
+   B.box(-12,2,0,12,18,28,c,{front:[[.22,.06,.78,.66,gl],[.05,0,.16,.3,"#5a3b2a"],[.84,0,.95,.3,"#5a3b2a"]]});B.disc(0,1.95,18.5,6.7,gl,24);
+   for(let k=0;k<6;k++){const u=[0.3,1.6,3.4,20.6,22.4,23.7][k];B.line([-12+u,1.95,18.5-6.7*0],[-12+u,1.95,18.5],.01,gl)}
+   for(let k=1;k<6;k++)B.line([-6.7+k*2.23,1.9,1.2],[-6.7+k*2.23,1.9,18.5+Math.sqrt(Math.max(0,6.7*6.7-(-6.7+k*2.23)**2))-.3],.18,"#6f7f8f");B.line([-6.7,1.9,10],[6.7,1.9,10],.18,"#6f7f8f");
+   for(const x of [-11,-8.5,8.5,11])B.prism(x,1.2,.9,0,26,10,lt);B.box(-12.6,.4,26,12.6,18.6,28,lt);
+   B.box(-10,1,28,10,18,32,c,{front:[[.1,.25,.9,.75,lt]]});B.gable(-10.5,.5,10.5,18.5,32,3.2,lt,"y");for(const x of [-8,-3,3,8])fig2(x,1.6,32);fig2(0,4,35.2);
+   B.vault(-30,18,30,40,0,12,"#9fc3dd");trainAt(B,40,-6,40,"#2648c9",false)},
  "stn:ath":(B)=>{const c="#ecd9a8";B.box(-24,4,0,24,16,12,c,{front:[...B.win(8,2,"#5f8fa8",.2,.85),...B.door(.12,.45,"#5a3b2a")],side:B.win(2,2,"#5f8fa8",.2,.85)});B.hip(-25,3,25,17,12,4,"#c8673e",2.5);
    B.box(-6,2,0,6,18,15,c,{front:[[.3,0,.7,.6,"#5a3b2a"]]});B.gable(-6.6,1.4,6.6,18.6,15,3,"#c8673e","y");B.disc(0,1.8,12.5,1.6,"#fbf8f1");B.box(-30,18,0,30,30,7,"#cfd6de");B.box(-31,17,7,31,31,7.8,"#9aa3ad")},
  /* ---- harbours ---- */
@@ -3140,7 +3166,7 @@ const HUBX={
  "prt:ven":(B)=>{B.box(-34,6,0,-4,24,9,"#e8dcc4",{front:[...B.win(6,1,"#8fa7bf",.35,.8),...B.door(.14,.5,"#5a3b2a")]});B.box(-34.5,5.5,9,-3.5,24.5,10,"#c48f55");
    B.box(-36,21,0,40,25.6,1,"#9aa3ad");cruise(B,14,26,"#f4f1e8",44);B.box(-44,-4,0,-36,14,1,"#a5794d");B.box(-46,-2,0,-41,10,2,"#f4f1e8",{front:[[0,0,1,.4,"#2f6fbf"]]});B.box(-45,1,2,-42,7,4,"#f4f1e8")}
 };
-Object.assign(ART,{"stn:par":[70,40],"prt:rom":[86,40]});
+Object.assign(ART,{"stn:par":[96,40],"prt:rom":[86,40]});
 
 const MODELC={};function modelFor(kind,c,lt){lt=lt||{key:LTKEY,v:LT};const base=kind+"|"+c.st,k=base+"|"+lt.key;if(MODELC[k])return MODELC[k];
   for(const o in MODELC)if(o.startsWith(base+"|"))delete MODELC[o];const keep=LT;LT=lt.v;try{return MODELC[k]=buildModel(kind,c)}finally{LT=keep}}
@@ -5499,7 +5525,7 @@ function openSettings(){const fsOK=!!(document.documentElement.requestFullscreen
    <div class="setlist"><div class="row"><span>Ljud</span><button class="btn" type="button" id="s-snd" style="margin:0;width:auto;padding:8px 14px">${AMB.on?"På":"Av"}</button></div>
    <div class="row"><span>Musik<small style="display:block;font-size:12px;color:var(--muted);font-weight:500">${esc(MUS.styleOf(here()).nm)}</small></span><button class="btn" type="button" id="s-mus" style="margin:0;width:auto;padding:8px 14px">${MUS.enabled?"På":"Av"}</button></div>
    ${fsOK?`<div class="row"><span>Helskärm</span><button class="btn" type="button" id="s-fs" style="margin:0;width:auto;padding:8px 14px">${document.fullscreenElement?"Avsluta":"Slå på"}</button></div>`:`<div class="sub">Helskärm på iPhone: Dela → Lägg till på hemskärmen.</div>`}</div>
-   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 89 · 22 okt</div><button class="close" type="button">Klar</button>`,{center:true});
+   <button class="btn" type="button" id="s-guide" style="margin-top:14px">📖 Guide – så funkar spelet</button><button class="linkbtn" id="s-restart" type="button" style="margin-top:14px">Börja om från början</button><div class="sub" style="margin-top:10px;font-size:12px;opacity:.6">Version 91 · 22 okt</div><button class="close" type="button">Klar</button>`,{center:true});
   wireHand(m);m.querySelector("#s-snd").onclick=()=>{$("snd").click();m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};m.querySelector("#s-mus").onclick=()=>{MUS.setEnabled(!MUS.enabled);if(MUS.enabled&&!AMB.on)$("snd").click();m.querySelector("#s-mus").textContent=MUS.enabled?"På":"Av";m.querySelector("#s-snd").textContent=AMB.on?"På":"Av"};
   const fb=m.querySelector("#s-fs");if(fb)fb.onclick=()=>{const d=document.documentElement;if(document.fullscreenElement||document.webkitFullscreenElement)(document.exitFullscreen||document.webkitExitFullscreen).call(document);else (d.requestFullscreen||d.webkitRequestFullscreen).call(d);closeModal()};
   m.querySelector("#s-restart").onclick=()=>{closeModal();setTimeout(()=>{const r=modal(`<h2>Börja om?</h2><div class="sub">Hela resan, alla foton och certifikat försvinner.</div><button class="btn primary" type="button" id="yes">Ja, börja om</button><button class="close" type="button">Avbryt</button>`,{center:true});r.querySelector("#yes").onclick=()=>{closeModal();newGame();mapInit=false;render();setTab("city")}},150)};
