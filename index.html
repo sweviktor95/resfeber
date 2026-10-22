@@ -5555,6 +5555,7 @@ render();setSoundUI();intro(!!saved);w3Start();
 (function(){const d=document.documentElement,can=d.requestFullscreen||d.webkitRequestFullscreen,standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
   if(!can||standalone)return;const box=document.querySelector(".walkctl");if(!box)return;const b=document.createElement("button");b.id="fsbtn";b.type="button";b.setAttribute("aria-label","Helskärm");b.textContent="⛶";
   b.onclick=()=>{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{(d.requestFullscreen||d.webkitRequestFullscreen).call(d)}};box.appendChild(b)})();
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
 </html>
